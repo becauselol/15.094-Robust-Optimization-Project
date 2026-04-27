@@ -1,0 +1,7 @@
+[submodule "StationSelection.jl"]
+	path = StationSelection.jl
+	url = git@github.com:yongzherui/StationSelection.jl.git
+	branch = ro-project
+[submodule "MicroTransitSimulator.jl"]
+	path = MicroTransitSimulator.jl
+	url = git@github.com:yongzherui/MicroTransitSimulator.jl.git
