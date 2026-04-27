@@ -41,15 +41,15 @@
 We extend a two-stage stochastic virtual bus stop (VBS) selection model to
 handle uncertain passenger demand within each scenario type (morning peak,
 midday, evening peak, weekend).  Demand for each origin--destination pair
-$(o,d)$ and scenario type $s$ is modeled as lying in a budget uncertainty set
-parameterized by lower and upper bounds derived from historical data and a
-per-scenario budget $\Gamma_s$ that limits the number of OD pairs allowed to
-simultaneously reach their upper demand levels.  We derive the dual robust
-counterpart of the inner maximization, which is a linear program with the same
-structure as the nominal model.  We compare three station-selection policies---
-\emph{Nominal}, \emph{Upper-Bound}, and \emph{Budget-Robust}---on out-of-sample
-demand realizations and report average cost, high-percentile (P90/P95) cost,
-and the price of robustness.
+$(o,d)$ and scenario type $s$ is modeled as lying in a capped-total-demand
+uncertainty set parameterized by lower and upper OD-specific bounds together
+with a per-scenario upper bound on aggregate demand.  We derive the dual robust
+counterpart of the inner maximization, which remains linear and can be solved
+with the same MILP machinery as the nominal model.  We compare three
+station-selection policies---\emph{Nominal}, \emph{Upper-Bound}, and
+\emph{Robust Total-Demand-Cap}---on out-of-sample demand realizations and
+report average cost, high-percentile (P90/P95) cost, and the price of
+robustness.
 \end{abstract}
 
 \tableofcontents
@@ -72,9 +72,24 @@ In practice, demand fluctuates even within a scenario type: morning-peak demand
 on one day may differ substantially from the next.  This motivates a
 \emph{robust} extension where $q_{ods}$ is uncertain within a bounded set.
 
-We adopt Bertsimas and Sim's \emph{budget uncertainty set}
-\cite{bertsimas2004price}, which gives a tractable linear robust counterpart and
-allows a meaningful trade-off between conservatism and solution quality.
+The uncertainty model adopted here is designed to encode a direct operational
+statement: each OD pair has a plausible demand range, and the \emph{total}
+demand within a scenario type should not exceed a calibrated upper bound.  This
+produces a tractable robust counterpart while aligning more closely with the
+goal of limiting aggregate demand rather than normalized perturbation.
+
+Even without explicitly modeling routing, this notion of robustness still has a
+clear interpretation.  Under a nominal-demand optimization, the chosen station
+set may fit the average demand pattern well but perform poorly when demand
+shifts toward OD pairs that are less conveniently located relative to the
+selected stops.  In those cases, realized passenger access cost can spike, and
+more requests may be pushed toward assignments that are close to the edge of
+the admissible walking-distance structure.  The robust model reduces this
+sensitivity by favoring station configurations whose assignment performance
+remains more stable across plausible demand realizations.  Thus, in the reduced
+model, robustness should be interpreted as protection against sudden
+deterioration in passenger walking/access quality, rather than as protection of
+routing efficiency itself.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Base Model}
@@ -116,163 +131,309 @@ is a weight that converts routing time to the same unit as walking distance.
 \end{align}
 
 % ──────────────────────────────────────────────────────────────────────────────
-\section{Budget Uncertainty Set for Demand}
+\section{Full Routing Formulation Reference}
+\label{sec:full-routing}
+
+To assess whether a robust counterpart remains tractable once routing is
+modeled explicitly, it is useful to keep the full March 18 route-capacitated
+formulation in view.  This is the formulation that more directly reflects the
+JacqWang setting where demand affects both station assignment and route
+selection.
+
+\subsection{March 18 Route-Capacitated Model}
+
+Let
+\begin{align*}
+   & P            &  & \text{: set of passenger requests},                                    \\
+   & S            &  & \text{: set of scenarios},                                             \\
+   & R            &  & \text{: set of candidate routes},                                      \\
+   & J            &  & \text{: set of candidate stations},                                    \\
+   & o(p),\, d(p) &  & \text{: origin and destination of request } p,                         \\
+   & t(p)         &  & \text{: time associated with request } p,                              \\
+   & \Delta(o(p)) &  & \text{: admissible pickup stations within walking distance of } o(p),  \\
+   & \Delta(d(p)) &  & \text{: admissible dropoff stations within walking distance of } d(p), \\
+   & \tau^r       &  & \text{: travel-time or route-cost coefficient of route } r,            \\
+   & \rho         &  & \text{: fixed cost of using a route},                                  \\
+   & Cap_r        &  & \text{: capacity of route } r,                                          \\
+   & \beta^r_{jkt\ell} & & \text{: indicator that demand class }(j,k,t)\text{ occupies capacity on segment }\ell\text{ of route }r.
+\end{align*}
+
+Decision variables:
+\begin{align*}
+   & x_{pjks} \in \{0,1\}      &  & \text{: whether request } p \text{ is assigned to pickup station } j \text{ and dropoff station } k \text{ in scenario } s, \\
+   & \alpha^r_{jkts} \in \mathbb{Z}_+ & & \text{: amount of class }(j,k,t)\text{ loaded onto route }r\text{ in scenario }s,                                   \\
+   & z_{js} \in \{0,1\}        &  & \text{: whether station } j \text{ is used in scenario } s,                                                           \\
+   & y_j \in \{0,1\}           &  & \text{: whether station } j \text{ is globally selected/opened,}                                                      \\
+   & \theta^r_{ts} \in \mathbb{Z}_+ & & \text{: number of deployments of route } r \text{ in time bucket } t \text{ and scenario } s.
+\end{align*}
+
+Parameters linking demand and routing:
+\begin{align*}
+   & q_p            &  & \text{: demand associated with request } p,                                 \\
+   & c^{walk}_{pjk} &  & \text{: walking/access cost when request } p \text{ is assigned to } (j,k).
+\end{align*}
+
+The objective is
+\begin{equation}
+  \min
+  \sum_{s \in S} \left[
+  \sum_{p \in P} \sum_{j \in \Delta(o(p))} \sum_{k \in \Delta(d(p))}
+  q_p\,c^{walk}_{pjk}\,x_{pjks}
+  +
+  \mu \sum_{r \in R} (\tau^r + \rho)\,\theta^{rs}
+  \right].
+  \label{eq:full-route-obj}
+\end{equation}
+
+Subject to
+\begin{align}
+   & \sum_{j \in \Delta(o(p))} \sum_{k \in \Delta(d(p))} x_{pjks} = 1,
+   & &\forall p \in P,\ \forall s \in S,
+  \label{eq:full-route-assign}
+  \\
+   & x_{pjks} \le z_{js},
+   & &\forall p \in P,\ \forall j \in \Delta(o(p)),\ \forall k \in \Delta(d(p)),\ \forall s \in S,
+  \label{eq:full-route-pick}
+  \\
+   & x_{pjks} \le z_{ks},
+   & &\forall p \in P,\ \forall j \in \Delta(o(p)),\ \forall k \in \Delta(d(p)),\ \forall s \in S,
+  \label{eq:full-route-drop}
+  \\
+   & z_{js} \le y_j,
+   & &\forall j \in J,\ \forall s \in S,
+  \label{eq:full-route-open-link}
+  \\
+   & \sum_{j \in J} z_{js} = K,
+   & &\forall s \in S,
+  \label{eq:full-route-scenario-count}
+  \\
+   & \sum_{j \in J} y_j = L,
+  \label{eq:full-route-global-count}
+  \\
+   & \sum_{p \in P:\, t(p)=t} q_p\,x_{pjks}
+  \le
+  \sum_{r \in R} \alpha^r_{jkts},
+   & &\forall j,k,t,\ \forall s \in S,
+  \label{eq:full-route-cover}
+  \\
+   & \sum_{j,k} \beta^r_{jkt\ell}\,\alpha^r_{jkts} \le Cap_r\,\theta^r_{ts},
+   & &\forall r \in R,\ \forall \ell \in V(r),\ \forall t,\ \forall s \in S.
+  \label{eq:full-route-segcap}
+\end{align}
+
+\subsection{Why robustness becomes harder here}
+
+In this formulation, uncertainty in $q_p$ propagates through multiple coupled
+layers.  It affects the walking-cost term in \eqref{eq:full-route-obj}, it
+determines the left-hand side of the route-covering constraints
+\eqref{eq:full-route-cover}, and that demand must then be covered by
+route-loading variables $\alpha^r_{jkts}$ subject to segment-capacity
+constraints \eqref{eq:full-route-segcap}.  This is why a compact robust
+counterpart becomes much harder than in the reduced station-selection model:
+the uncertain demand does not just perturb objective coefficients, it changes
+the amount of flow that must be feasibly loaded onto routes.  That structure is
+exactly the kind of setting where cutting-plane or scenario-generation
+approaches are more natural than a closed-form robust counterpart.
+
+\subsection{Routing-aware robust problem in min-max form}
+
+For the present application, both the globally built stations $y$ and the
+scenario-active stations $z$ should be fixed in advance.  The operational
+variables $x$, $\alpha$, and $\theta$ may still adapt after demand is realized.
+Under this interpretation, the robust routing-aware problem is best written in
+\emph{min-max} form, where the inner objective is the optimal recourse value for
+the realized demand.
+
+A natural stage split is therefore:
+\begin{itemize}
+  \item first stage: choose globally built stations $y$ and scenario-active
+        stations $z$;
+  \item adversary: choose a demand realization $q \in \cU$;
+  \item recourse: choose assignments $x$, route loading $\alpha$, and route
+        deployments $\theta$.
+\end{itemize}
+
+Define the recourse value function
+\begin{equation}
+  \Phi(y,z,q)
+  :=
+  \min_{x,\alpha,\theta}
+  \left\{
+    \sum_{p,j,k} q_p\,c^{walk}_{pjk}\,x_{pjk}
+    + \mu \sum_{r,t} (\tau^r + \rho)\,\theta^r_t
+  \right\}
+  \label{eq:routing-recourse-value}
+\end{equation}
+subject to
+\begin{align}
+   & \sum_{j \in \Delta(o(p))} \sum_{k \in \Delta(d(p))} x_{pjk} = 1
+   && \forall p,
+  \label{eq:routing-rec-assign}
+  \\
+   & x_{pjk} \le z_j,\quad x_{pjk} \le z_k
+   && \forall p,j,k,
+  \label{eq:routing-rec-active}
+  \\
+   & \sum_{p:\,t(p)=t} q_p\,x_{pjk} \le \sum_r \alpha^r_{jkt}
+   && \forall j,k,t,
+  \label{eq:routing-rec-cover}
+  \\
+   & \sum_{j,k} \beta^r_{jkt\ell}\,\alpha^r_{jkt} \le Cap_r\,\theta^r_t
+   && \forall r,\ell,t,
+  \label{eq:routing-rec-segcap}
+  \\
+   & x_{pjk} \in \{0,1\},\;
+   \alpha^r_{jkt} \in \mathbb{Z}_+,\;
+   \theta^r_t \in \mathbb{Z}_+.
+  \label{eq:routing-rec-dom}
+\end{align}
+
+Then the robust design problem is
+\begin{equation}
+  \min_{\substack{y,z:\\ z_j \le y_j\ \forall j,\\ \sum_j y_j = L,\ \sum_j z_j = K}}
+  \max_{q \in \cU}
+  \Phi(y,z,q).
+  \label{eq:routing-robust-minmax}
+\end{equation}
+Here $\cU$ is the chosen demand uncertainty set.  The max operator reflects the
+fact that $y$ and $z$ are fixed before demand is known, while the value
+function $\Phi(y,z,q)$ captures the best routing-and-assignment response after
+the realization of $q$.
+
+This definition of the recourse value function is not merely theoretical.  It
+also describes how out-of-sample evaluation should be carried out if the robust
+model is to be interpreted consistently.  Once a design $(y,z)$ is fixed by the
+first-stage optimization, a realized order set or demand realization determines
+$q$, and the operational model should then resolve the assignment and route
+loading subproblem to compute the realized response.  In other words, the
+out-of-sample simulation should evaluate $\Phi(y,z,q^{\mathrm{test}})$ for each
+held-out realization, rather than evaluating the fixed design under a different
+or heuristic assignment rule.  This is important because the robust design is
+only meaningful relative to the recourse mechanism it assumes.
+
+\subsection{Why this suggests a cutting-plane method}
+
+Formulation \eqref{eq:routing-robust-minmax} suggests a decomposition-based
+solution rather than a compact robust counterpart.  For fixed design decisions
+$(y,z)$, the adversarial problem asks for a demand realization
+$q \in \cU$ that maximizes the recourse value $\Phi(y,z,q)$.  This naturally
+leads to a cutting-plane or column-and-constraint generation loop:
+\begin{enumerate}
+  \item solve a master problem over $(y,z)$ using only a current finite set of
+        adversarial demand realizations;
+  \item for the resulting $(y^\star,z^\star)$, solve an adversarial separation
+        problem to search for a new worst-case demand realization
+        $q^\star \in \cU$;
+  \item if such a realization is found, add it to the master and repeat.
+\end{enumerate}
+
+Under this view, the master problem is a finite-scenario robust design model,
+while the separation problem is a worst-case-demand search coupled to the
+routing recourse model.  This is the main conceptual reason to prefer cutting
+planes here: the adversarial effect of $q$ is mediated through a large integer
+recourse value function, so exact dualization is unlikely to remain compact.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Uncertainty Set for Demand}
 \label{sec:uncertainty}
 
 \subsection{Parameterization}
 
 For each OD pair $(o,d)$ and scenario type $s$, assume we can estimate a lower
-bound $\underline{q}_{ods}$ and an upper bound $\overline{q}_{ods}$ on demand.
-Write
-\begin{equation}
-  q_{ods} = \bar{q}_{ods} + \hat{q}_{ods}\,\xi_{ods},
-  \qquad
-  \bar{q}_{ods} = \underline{q}_{ods},
-  \qquad
-  \hat{q}_{ods} = \overline{q}_{ods} - \underline{q}_{ods},
-  \qquad
-  0 \le \xi_{ods} \le 1.
-  \label{eq:demand-param}
-\end{equation}
-Impose a \emph{budget constraint} per scenario type:
-\begin{equation}
-  \sum_{(o,d) \in \Omega} \xi_{ods} \le \Gamma_s
-  \qquad \forall s \in S.
-  \label{eq:budget-constraint}
-\end{equation}
-The uncertainty set is then
+bound $\underline{q}_{ods}$ and an upper bound $\overline{q}_{ods}$ on demand,
+and let $\overline{Q}_s$ denote an upper bound on \emph{total} demand in
+scenario type $s$.  The uncertainty set is
 \begin{equation}
   \cU_s = \Bigl\{
     q_s :
-    q_{ods} = \underline{q}_{ods} + \hat{q}_{ods}\,\xi_{ods},\;
-    0 \le \xi_{ods} \le 1,\;
-    \textstyle\sum_{(o,d)} \xi_{ods} \le \Gamma_s
+    \underline{q}_{ods} \le q_{ods} \le \overline{q}_{ods}\ \forall (o,d),\;
+    \sum_{(o,d)\in\Omega} q_{ods} \le \overline{Q}_s
   \Bigr\}.
   \label{eq:uset}
 \end{equation}
 
-This set is best interpreted as a budget on \emph{normalized upward
-deviations} from the lower-bound demand vector, not as a direct statement about
-integer passenger counts.  The variable $\xi_{ods}$ measures the fraction of
-the interval $[\underline{q}_{ods},\overline{q}_{ods}]$ that is activated for
-OD pair $(o,d)$ in scenario $s$.
-
-\subsection{Interpretation of $\Gamma_s$}
-
+This uncertainty set says two things simultaneously:
 \begin{itemize}
-  \item $\Gamma_s = 0$: all OD pairs at their lower bound (most optimistic).
-  \item $\Gamma_s = |\Omega|$: all OD pairs can simultaneously reach their upper
-        bound (equivalent to the upper-bound conservative model).
-  \item Intermediate $\Gamma_s$: guards against a total normalized deviation of
-        at most $\Gamma_s$ across OD pairs.
+  \item each OD pair must remain within its own historically calibrated range;
+  \item the aggregate demand in the scenario cannot exceed $\overline{Q}_s$.
 \end{itemize}
 
-This is not, in general, the same as saying that at most $\Gamma_s$ OD pairs
-spike.  That counting interpretation becomes exact only when the inner
-maximizer chooses $\xi_{ods} \in \{0,1\}$, which happens for the
-continuous-knapsack worst-case problem when $\Gamma_s$ is an integer and all
-induced costs are nonnegative.  If $\Gamma_s$ is fractional, one OD pair may be
-partially activated in the worst case.
+\subsection{Interpretation of the total-demand cap}
 
-A larger $\Gamma_s$ for morning peak than for midday encodes the prior that
-peak hours exhibit more correlated demand spikes.
+\begin{itemize}
+  \item If $\overline{Q}_s = \sum_{(o,d)} \underline{q}_{ods}$, then all OD
+        demands are forced to remain at their lower bounds.
+  \item If $\overline{Q}_s \ge \sum_{(o,d)} \overline{q}_{ods}$, then the total
+        demand cap is inactive and the model reduces to independent box bounds
+        on each OD pair.
+  \item Intermediate values of $\overline{Q}_s$ allow some OD pairs to be high
+        simultaneously, but only so long as total demand stays below the
+        calibrated cap.
+\end{itemize}
+
+A larger $\overline{Q}_s$ for morning peak than for midday encodes the prior
+that peak periods experience larger systemwide demand surges.
 
 \subsection{Remark on integer demand}
 
-Observed demand is integer-valued, but the robust inner maximization is written
-over continuous variables $\xi_{ods}$.  This is not automatically a relaxation
-gap.  For a fixed first-stage solution $x$, the inner problem is
-\[
-  \max_{\xi}\;
-  \sum_{(o,d)} \hat{q}_{ods} C_{ods}(x)\,\xi_{ods}
-  \quad
-  \text{s.t.}\;
-  0 \le \xi_{ods} \le 1,\;
-  \sum_{(o,d)} \xi_{ods} \le \Gamma_s.
-\]
-Since $C_{ods}(x) \ge 0$, this is a continuous knapsack problem.  If
-$\Gamma_s \in \mathbb{Z}_+$, there exists an optimal solution with
-$\xi_{ods} \in \{0,1\}$: sort OD pairs by $\hat{q}_{ods} C_{ods}(x)$ and set
-the largest $\Gamma_s$ entries to $1$.  Hence the worst-case objective value is
-exact even though the formulation uses continuous $\xi$.  The caveat is
-interpretive: extreme points correspond to lower-bound or upper-bound demand
-levels, not arbitrary intermediate integer counts inside
-$[\underline{q}_{ods},\overline{q}_{ods}]$.
+Observed demand is integer-valued, but the robust inner maximization may still
+be solved as a linear program.  The key point is that the uncertainty set
+\eqref{eq:uset} is a bounded knapsack-type polytope.  If the bounds
+$\underline{q}_{ods}$, $\overline{q}_{ods}$, and $\overline{Q}_s$ are integral,
+the inner LP has an optimal extreme point that is integral as well.  Hence
+dropping integrality in the inner maximization does not change the worst-case
+value, even though the uncertainty set is written in continuous form.
 
-\subsection{Calibrating bounds and budget from data}
+\subsection{Calibrating the uncertainty set from data}
 \label{sec:calibration}
 
 Group historical observations by scenario type $s \in \{\text{morning},
 \text{midday}, \text{evening}, \text{weekend}\}$.  For each OD pair $(o,d)$
 compute empirical quantiles:
 \begin{equation}
-  \underline{q}_{ods} = Q_{0.25}\!\bigl(q_{od}^{\mathrm{hist}} \mid s\bigr),
+  \underline{q}_{ods} = Q_{0.10}\!\bigl(q_{od}^{\mathrm{hist}} \mid s\bigr),
   \qquad
   \overline{q}_{ods}  = Q_{0.90}\!\bigl(q_{od}^{\mathrm{hist}} \mid s\bigr).
   \label{eq:quantiles}
 \end{equation}
-Then define the normalized demand inflation for each historical day:
-\begin{equation}
-  \xi^{\mathrm{hist}}_{ods}
-  = \mathrm{clip}\!\left(
-      \frac{q^{\mathrm{hist}}_{ods} - \underline{q}_{ods}}
-           {\hat{q}_{ods}},\; 0,\; 1
-    \right).
-\end{equation}
-Compute the total budget consumed on each historical day:
-\begin{equation}
-  B^{\mathrm{hist}}_s = \sum_{(o,d) \in \Omega} \xi^{\mathrm{hist}}_{ods}.
-\end{equation}
-Choose
-\begin{equation}
-  \Gamma_s = Q_{0.90}\!\bigl(B^{\mathrm{hist}}_s\bigr)
-  \quad\text{or}\quad
-  \Gamma_s = Q_{0.95}\!\bigl(B^{\mathrm{hist}}_s\bigr).
-  \label{eq:gamma-cal}
-\end{equation}
 
-\subsection{Additional uncertainty set based on total demand}
+These quantiles are only an example; in practice they should be chosen to match
+the desired level of robustness and the amount of available data.  If the lower
+quantile is set too high, the model can become infeasible or artificially
+tight because the total-demand cap must still exceed the sum of all lower
+bounds.  For sparse OD pairs, one may regularize these estimates by pooling
+across nearby OD pairs, shrinking toward scenario-level averages, or imposing a
+minimum support threshold before assigning pair-specific bounds.
 
-In addition to the budgeted-deviation set \eqref{eq:uset}, one can also study a
-total-demand-cap uncertainty set if the modeling intent is not to limit the
-amount of perturbation, but rather to impose an upper bound on total demand:
+Next compute the realized total demand on each historical day:
 \begin{equation}
-  \cU^{\mathrm{sum}}_s
+  Q^{\mathrm{hist}}_{s,t}
+  := \sum_{(o,d)\in\Omega} q^{\mathrm{hist}}_{ods,t},
+  \label{eq:hist-total}
+\end{equation}
+where $t$ indexes historical observations within scenario type $s$.  Then set
+\begin{equation}
+  \overline{Q}_s
   =
-  \Bigl\{
-    q_s :
-    \underline{q}_{ods} \le q_{ods} \le \overline{q}_{ods}\ \forall (o,d),\;
-    \sum_{(o,d)\in\Omega} q_{ods} \le \overline{Q}_s
-  \Bigr\}.
-  \label{eq:uset-sum}
+  Q_{0.90}\!\bigl(Q^{\mathrm{hist}}_{s,t}\bigr)
+  \quad\text{or}\quad
+  \overline{Q}_s
+  =
+  Q_{0.95}\!\bigl(Q^{\mathrm{hist}}_{s,t}\bigr).
+  \label{eq:qcap-cal}
 \end{equation}
-This added uncertainty set is not equivalent to the budget set \eqref{eq:uset}
-in general.
-Substituting $q_{ods}=\underline{q}_{ods}+\hat{q}_{ods}\xi_{ods}$ yields
-\begin{equation}
-  \sum_{(o,d)} \hat{q}_{ods}\,\xi_{ods}
-  \le
-  \overline{Q}_s - \sum_{(o,d)} \underline{q}_{ods},
-  \label{eq:weighted-budget}
-\end{equation}
-which is a \emph{weighted} budget on deviations.  By contrast,
-\eqref{eq:uset} uses the unweighted budget $\sum \xi_{ods} \le \Gamma_s$.
-These two descriptions are equivalent only in the special case where all
-deviation widths $\hat{q}_{ods}$ are identical.
 
-The inner worst-case problem under \eqref{eq:uset-sum} remains tractable:
+Equation \eqref{eq:qcap-cal} is the direct data-driven analog of the modeling
+statement ``total demand in scenario $s$ should usually not exceed a high
+historical quantile.''  Choosing the 90th percentile gives a less conservative
+model, while the 95th or 99th percentile yields more protection against
+systemwide surges.  One practical check is to verify that
 \[
-  \max_q \sum_{(o,d)} q_{ods} C_{ods}(x)
-  \quad
-  \text{s.t.}\;
-  \underline{q}_{ods} \le q_{ods} \le \overline{q}_{ods},\;
-  \sum_{(o,d)} q_{ods} \le \overline{Q}_s.
+  \sum_{(o,d)} \underline{q}_{ods} \le \overline{Q}_s
+  \le \sum_{(o,d)} \overline{q}_{ods},
 \]
-If all bounds and $\overline{Q}_s$ are integral, the LP relaxation is exact,
-so integrality may be dropped in the inner problem without changing the
-worst-case value.  This makes the total-demand-cap model a useful extension to
-the current discussion when the desired policy statement is a cap on
-$\sum q_{ods}$ rather than a cap on aggregate normalized deviation.
+and if this fails, adjust the quantile choices or rescale the OD-specific upper
+bounds to restore consistency.
 
 \subsection{Robust counterpart for the total-demand-cap set}
 
@@ -284,7 +445,7 @@ Assume
   \sum_{(o,d)} \overline{q}_{ods}
   \qquad \forall s \in S,
 \]
-so that the uncertainty set \eqref{eq:uset-sum} is nonempty.  Define the
+so that the uncertainty set \eqref{eq:uset} is nonempty.  Define the
 remaining demand budget after accounting for lower bounds:
 \[
   B_s := \overline{Q}_s - \sum_{(o,d)} \underline{q}_{ods}.
@@ -292,6 +453,8 @@ remaining demand budget after accounting for lower bounds:
 Now substitute
 \[
   q_{ods} = \underline{q}_{ods} + r_{ods},
+  \qquad
+  \hat{q}_{ods} := \overline{q}_{ods} - \underline{q}_{ods},
   \qquad
   0 \le r_{ods} \le \hat{q}_{ods}.
 \]
@@ -372,14 +535,6 @@ subject to
 \end{equation}
 plus \eqref{eq:assign}--\eqref{eq:budget}.
 
-\begin{remark}
-Compared with the Bertsimas-Sim counterpart \eqref{eq:robust-counterpart}, the
-roles of the deviation widths move from the right-hand side of the robust
-constraints to the objective coefficients of the dual variables
-$\beta_{ods}$.  This is the key structural difference induced by placing the
-budget on total demand $\sum q_{ods}$ instead of on normalized deviations.
-\end{remark}
-
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Robust Objective}
 \label{sec:robust-obj}
@@ -396,61 +551,44 @@ The robust model replaces the nominal objective with
 where the induced assignment cost $C_{ods}(x) = \sum_{j,k} a_{odjks}\,x_{odjks}$
 depends only on the first-stage solution.
 
-Substituting \eqref{eq:demand-param}:
+Using \eqref{eq:uset}, this is equivalent to
 \begin{equation}
-  \max_\xi
-  \sum_{(o,d)}
-  \bigl[\underline{q}_{ods} + \hat{q}_{ods}\,\xi_{ods}\bigr]\,C_{ods}(x)
+  \max_q
+  \sum_{(o,d)} q_{ods}\,C_{ods}(x)
   \quad
-  \text{s.t.}\; 0 \le \xi_{ods} \le 1,\;
-  \textstyle\sum_{(o,d)}\xi_{ods} \le \Gamma_s.
+  \text{s.t.}\;
+  \underline{q}_{ods} \le q_{ods} \le \overline{q}_{ods},\;
+  \sum_{(o,d)} q_{ods} \le \overline{Q}_s.
   \label{eq:inner-max}
 \end{equation}
-This decomposes into a \emph{continuous knapsack} problem in $\xi$, which has a
-closed-form greedy solution but is most conveniently dualized.
+This is a continuous knapsack problem in the excess-demand variables
+$r_{ods}=q_{ods}-\underline{q}_{ods}$, and is most conveniently dualized.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Dual Robust Counterpart}
 \label{sec:dual}
 
-\begin{proposition}
-The inner maximization \eqref{eq:inner-max} has the following dual:
-\begin{align}
-  \max_\xi\; &\sum_{(o,d)} \hat{q}_{ods}\,C_{ods}(x)\,\xi_{ods}
-  & &\text{s.t.}\; 0 \le \xi_{ods} \le 1,\; \sum_{(o,d)}\xi_{ods} \le \Gamma_s
-  \nonumber\\
-  =\; \min_{\eta_s \ge 0,\, \rho_{ods} \ge 0}\;
-  &\Gamma_s\,\eta_s + \sum_{(o,d)} \rho_{ods}
-  & &\text{s.t.}\; \eta_s + \rho_{ods} \ge \hat{q}_{ods}\,C_{ods}(x)
-  \;\forall (o,d).
-  \label{eq:dual}
-\end{align}
-\end{proposition}
-
-Substituting back into \eqref{eq:robust-obj}, the full robust counterpart is:
+The derivation in \S\ref{sec:uncertainty} shows that this inner maximization is
+equivalent to the dual formulation \eqref{eq:dual-sum}.  Substituting back
+gives the robust counterpart \eqref{eq:robust-counterpart-sum}, repeated here
+for convenience:
 \begin{equation}
-  \min_{x,y,z,\eta,\rho}
+  \min_{x,y,z,\alpha,\beta}
   \sum_s\!\!\sum_{(o,d)}\!\sum_{j,k}
   \underline{q}_{ods}\,a_{odjks}\,x_{odjks}
-  + \sum_s \Gamma_s\,\eta_s
-  + \sum_s\!\!\sum_{(o,d)} \rho_{ods}
+  + \sum_s B_s\,\alpha_s
+  + \sum_s\!\!\sum_{(o,d)} \hat{q}_{ods}\,\beta_{ods}
   \label{eq:robust-counterpart}
 \end{equation}
 subject to
 \begin{equation}
-  \eta_s + \rho_{ods}
-  \ge \hat{q}_{ods} \sum_{j,k} a_{odjks}\,x_{odjks}
+  \alpha_s + \beta_{ods}
+  \ge \sum_{j,k} a_{odjks}\,x_{odjks}
   \qquad \forall (o,d),\, s,
   \label{eq:robust-con}
 \end{equation}
-plus the original constraints \eqref{eq:assign}--\eqref{eq:budget}.
-
-\begin{remark}
-Constraint \eqref{eq:robust-con} is already linear.  Indeed,
-$\hat{q}_{ods}$ is a parameter and
-$C_{ods}(x)=\sum_{j,k} a_{odjks}\,x_{odjks}$ is linear in $x$, so expanding
-\eqref{eq:robust-con} yields a standard linear inequality.
-\end{remark}
+plus the original constraints \eqref{eq:assign}--\eqref{eq:budget}.  This is a
+mixed-integer linear program.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{JuMP Implementation Sketch}
@@ -461,14 +599,15 @@ The new data requirements are:
 q_low[od, s]       # lower demand bound  (q_low_ods)
 q_high[od, s]      # upper demand bound  (q_high_ods)
 q_hat[od, s]       # = q_high - q_low   (q_hat_ods)
-Gamma[s]           # budget of uncertainty
+Q_cap[s]           # upper bound on total demand
+B[s]               # = Q_cap[s] - sum(q_low[od,s] for od in OD)
 a[od, j, k, s]     # assignment cost
 \end{verbatim}
 
 New variables:
 \begin{verbatim}
-@variable(model, eta[s in S] >= 0)
-@variable(model, rho[od in OD, s in S] >= 0)
+@variable(model, alpha[s in S] >= 0)
+@variable(model, beta[od in OD, s in S] >= 0)
 \end{verbatim}
 
 Robust objective:
@@ -476,16 +615,15 @@ Robust objective:
 @objective(model, Min,
     sum(q_low[od,s] * a[od,j,k,s] * x[od,j,k,s]
         for s in S, od in OD, j in J, k in J)
-    + sum(Gamma[s] * eta[s] for s in S)
-    + sum(rho[od,s] for od in OD, s in S)
+    + sum(B[s] * alpha[s] for s in S)
+    + sum(q_hat[od,s] * beta[od,s] for od in OD, s in S)
 )
 \end{verbatim}
 
 Robust dual constraints:
 \begin{verbatim}
 @constraint(model, [od in OD, s in S],
-    eta[s] + rho[od,s] >=
-        q_hat[od,s] *
+    alpha[s] + beta[od,s] >=
         sum(a[od,j,k,s] * x[od,j,k,s] for j in J, k in J)
 )
 \end{verbatim}
@@ -503,10 +641,9 @@ We compare:
   \item \textbf{Nominal model.}  Uses $q_{ods} = \E[q_{ods}]$ (scenario-average
         historical demand).
   \item \textbf{Upper-bound model.}  Sets $q_{ods} = \overline{q}_{ods}$ for
-        every OD pair.  Maximally conservative; equivalent to budget-robust with
-        $\Gamma_s = |\Omega|$.
-  \item \textbf{Budget-robust model.}  Uses uncertainty set $\cU_s$ with
-        $\Gamma_s$ calibrated from data via \eqref{eq:gamma-cal}.
+        every OD pair.  Maximally conservative within the OD-wise box bounds.
+  \item \textbf{Robust total-demand-cap model.}  Uses uncertainty set $\cU_s$
+        with $\overline{Q}_s$ calibrated from data via \eqref{eq:qcap-cal}.
 \end{enumerate}
 
 Each model produces a station selection $(y^\star, z^\star)$ and assignments
@@ -523,6 +660,16 @@ held-out date range or a parametric simulation), compute the realized cost:
   \label{eq:realized-cost}
 \end{equation}
 
+For the routing-aware robust model, this evaluation principle must be refined.
+The design variables $(y,z)$ are fixed by the robust optimization, but the
+operational variables should be recomputed after the test realization is
+observed.  Thus, for each held-out order set, the correct out-of-sample
+evaluation is to solve the recourse problem $\Phi(y^\star,z^\star,q^{\mathrm{test}})$
+and record the resulting assignment and routing cost.  This makes the
+evaluation model consistent with the robust formulation itself and motivates an
+implementation path in which the simulator solves the routing-aware assignment
+subproblem conditional on fixed station decisions.
+
 \subsection{Reported metrics}
 
 For each model, report over the test set:
@@ -538,18 +685,18 @@ For each model, report over the test set:
 
 \subsection{Expected finding}
 
-The budget-robust model protects against simultaneous OD demand spikes without
-assuming that every OD pair reaches its upper bound.  It should give a
-\emph{less conservative} solution than the full upper-bound model (lower
-in-sample objective, lower price of robustness) while improving high-percentile
-out-of-sample performance relative to the nominal model.
+The robust total-demand-cap model protects against systemwide demand surges
+without assuming that every OD pair simultaneously reaches its upper bound.  It
+should give a \emph{less conservative} solution than the full upper-bound model
+(lower in-sample objective, lower price of robustness) while improving
+high-percentile out-of-sample performance relative to the nominal model.
 
 Formally:
 \[
-  \text{Nominal P90} \;\ge\; \text{Budget-Robust P90} \;\ge\; \text{Upper-Bound P90},
+  \text{Nominal P90} \;\ge\; \text{Robust-Cap P90} \;\ge\; \text{Upper-Bound P90},
 \]
 \[
-  \text{Nominal mean} \;\le\; \text{Budget-Robust mean} \;\le\; \text{Upper-Bound mean}.
+  \text{Nominal mean} \;\le\; \text{Robust-Cap mean} \;\le\; \text{Upper-Bound mean}.
 \]
 
 \subsection{Experiment pipeline}
@@ -569,23 +716,27 @@ The experiment is driven by scripts in \texttt{scripts/}:
         statistics including the price of robustness.
 \end{enumerate}
 
-The sweep in \texttt{experiments/2026-05-01\_gamma\_sweep/} varies
-$\Gamma_s \in \{0, 2, 5, 10, 20\}$ across all three model types and
-$k \in \{6, 8, 10\}$.
+The sweep in \texttt{experiments/2026-05-01\_gamma\_sweep/} can be repurposed to
+vary the calibration percentile used for $\overline{Q}_s$ (for example
+90\%, 95\%, 99\%) and the station budget $k \in \{6, 8, 10\}$.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Conclusion}
 \label{sec:conclusion}
 
-We propose a budget-robust extension of the VBS station selection model.  The
-key insight is that the inner worst-case demand problem is a continuous knapsack
-with a clean dual, yielding a linear robust counterpart that can be solved with
-the same MILP solver as the nominal model.  The budget $\Gamma_s$ is a
-transparent, data-driven parameter that interpolates between the optimistic
-nominal model and the conservative upper-bound model.  If the intended modeling
-assumption is instead a cap on total demand $\sum q_{ods}$, then the weighted
-uncertainty set \eqref{eq:uset-sum}--\eqref{eq:weighted-budget} is the more
-direct formulation.
+We propose a robust extension of the VBS station selection model based on ODwise
+box bounds together with a scenario-level cap on total demand.  The key insight
+is that the inner worst-case demand problem is a continuous knapsack in
+excess-demand variables, with a clean dual that yields a linear robust
+counterpart solvable by the same MILP solver as the nominal model.  The
+parameters $\underline{q}_{ods}$, $\overline{q}_{ods}$, and $\overline{Q}_s$
+have direct empirical interpretations and can be calibrated transparently from
+historical data.  At the same time, the full routing formulation shows that a
+more operational notion of robustness would require protecting route loading and
+route cost under changing demand realizations, not just assignment quality.
+This points naturally to a next step in which robustness is imposed on the
+routing-aware model itself, likely through cutting-plane or scenario-generation
+methods rather than through a compact closed-form counterpart.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \bibliographystyle{plain}
