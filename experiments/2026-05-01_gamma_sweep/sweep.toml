@@ -1,0 +1,17 @@
+# Sweep parameters for gamma experiment.
+# Each entry can be a scalar (no sweep) or an array (swept).
+# 01_setup.jl takes the Cartesian product of all arrays.
+#
+# These override / extend [parameters] in base.toml.
+
+# Three model variants to compare
+"model.type" = ["NominalModel", "UpperBoundModel", "BudgetRobustModel"]
+
+# Budget of uncertainty Γ_s — number of OD pairs allowed to simultaneously
+# hit their upper demand bound.
+# 0 → nominal lower-bound demand; |Ω| → all OD pairs at upper bound.
+# Relevant only for BudgetRobustModel; ignored by the other two.
+gamma = [0.0, 2.0, 5.0, 10.0, 20.0]
+
+# Active stations per scenario
+k = [6, 8, 10]
