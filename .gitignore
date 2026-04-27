@@ -1,0 +1,33 @@
+# LaTeX intermediates
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+# Local LaTeX build directories
+.latex_output/
+build/
+
+# Julia environment and cache artifacts
+.julia/
+*.ji
+Manifest.toml
+
+# Experiment and analysis outputs
+output/
+outputs/
+results/
+runs/
+figures/
+plots/
+tmp/
