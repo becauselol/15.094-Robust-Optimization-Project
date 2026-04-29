@@ -49,6 +49,22 @@ function generate_combinations(d::Dict)
     return [Dict(zip(keys_vec, c)) for c in combos]
 end
 
+function set_nested_value!(cfg::Dict, key::String, value)
+    parts = split(key, ".")
+    if length(parts) == 1
+        params_table = get(cfg, "parameters", Dict())
+        params_table[key] = value
+        cfg["parameters"] = params_table
+        return
+    end
+
+    cursor = cfg
+    for part in parts[1:end-1]
+        cursor = get!(cursor, part, Dict{String, Any}())
+    end
+    cursor[parts[end]] = value
+end
+
 param_combos = generate_combinations(sweep)
 println("Generated $(length(param_combos)) parameter combinations")
 println()
@@ -59,10 +75,9 @@ mkpath(config_dir)
 
 for (i, params) in enumerate(param_combos)
     job_cfg = deepcopy(base)
-    # Sweep params override or extend the [parameters] table in base
-    params_table = get(job_cfg, "parameters", Dict())
-    merge!(params_table, params)
-    job_cfg["parameters"] = params_table
+    for (key, value) in params
+        set_nested_value!(job_cfg, String(key), value)
+    end
 
     config_file = joinpath(config_dir, "job_$(i).toml")
     open(config_file, "w") do f

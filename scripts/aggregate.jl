@@ -40,7 +40,15 @@ end
 rows = []
 for f in metrics_files
     row = JSON.parsefile(f)
-    # Flatten out-of-sample sub-dict
+    for field in ("out_of_sample", "direct_backtest", "simulation_backtest")
+        if haskey(row, field) && row[field] isa Dict
+            for (k, v) in row[field]
+                if !(v isa Dict || v isa Vector)
+                    row["$(field)_$(k)"] = v
+                end
+            end
+        end
+    end
     if haskey(row, "out_of_sample") && row["out_of_sample"] isa Dict
         for (k, v) in row["out_of_sample"]
             row["oos_$(k)"] = v
@@ -79,22 +87,36 @@ if hasproperty(df, :model_type) && hasproperty(df, :in_sample_objective)
     end
 end
 
-# Price of robustness: (robust_obj - nominal_obj) / nominal_obj
+# Side-by-side nominal vs robust comparison by shared config
 println("\n" * "="^80)
-println("Price of Robustness")
+println("Nominal vs Robust")
 println("="^80)
 if hasproperty(df, :model_type) && hasproperty(df, :in_sample_objective)
     nominal_rows = df[df[!, :model_type] .== "NominalModel", :]
-    robust_rows  = df[df[!, :model_type] .== "BudgetRobustModel", :]
-    if !isempty(nominal_rows) && !isempty(robust_rows)
-        nom_mean = mean(filter(!ismissing, nominal_rows[!, :in_sample_objective]))
-        rob_mean = mean(filter(!ismissing, robust_rows[!, :in_sample_objective]))
-        por = (rob_mean - nom_mean) / nom_mean * 100
-        println("  Nominal mean objective:      $(round(nom_mean; digits=2))")
-        println("  Budget-robust mean objective: $(round(rob_mean; digits=2))")
-        println("  Price of robustness:         $(round(por; digits=2))%")
+    robust_rows  = df[df[!, :model_type] .== "RobustTotalDemandCapModel", :]
+    candidate_join_cols = [
+        :k, Symbol("in_vehicle_time_weight"), :max_walking_distance,
+        :Q_cap_quantile, :q_high_quantile,
+    ]
+    join_cols = filter(c -> hasproperty(df, c), candidate_join_cols)
+    if !isempty(nominal_rows) && !isempty(robust_rows) && length(join_cols) >= 3
+        nominal_small = select(nominal_rows, vcat(join_cols, [:in_sample_objective]))
+        robust_small = select(robust_rows, vcat(join_cols, [:in_sample_objective]))
+        rename!(nominal_small, :in_sample_objective => :nominal_objective)
+        rename!(robust_small, :in_sample_objective => :robust_objective)
+        paired = innerjoin(nominal_small, robust_small, on=join_cols, makeunique=true)
+        if !isempty(paired)
+            paired.price_of_robustness_pct =
+                100 .* (paired.robust_objective .- paired.nominal_objective) ./ paired.nominal_objective
+            paired_path = joinpath(tables_dir, "nominal_vs_robust.csv")
+            CSV.write(paired_path, paired)
+            println("  Saved side-by-side table: $paired_path")
+            println("  Mean price of robustness: $(round(mean(paired.price_of_robustness_pct); digits=2))%")
+        else
+            println("  No matched nominal/robust pairs found")
+        end
     else
-        println("  (Need both NominalModel and BudgetRobustModel runs to compute PoR)")
+        println("  (Need both NominalModel and RobustTotalDemandCapModel runs to compare)")
     end
 end
 

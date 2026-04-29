@@ -103,12 +103,24 @@ performance remains more stable across plausible demand realizations.
                                \text{ destination VBS } k \text{ in scenario } s
 \end{align*}
 
+Following the March 18 JacqWang formulation, walking distance induces
+admissibility sets.  Let $\Delta(o) \subseteq J$ be the candidate pickup
+stations within the walking limit of origin $o$, and let $\Delta(d) \subseteq
+J$ be the candidate dropoff stations within the walking limit of destination
+$d$.  Define the admissible station-pair set
+\[
+  A_{od}
+  :=
+  \{(j,k) : j \in \Delta(o),\ k \in \Delta(d),\ j \neq k\}.
+\]
+Only pairs in $A_{od}$ may be used to serve OD pair $(o,d)$.
+
 \subsection{Nominal objective}
 
 The nominal two-stage objective minimizes expected passenger travel cost:
 \begin{equation}
   \min_{x,y,z}
-  \sum_{s \in S} \sum_{(o,d) \in \Omega} \sum_{j,k \in J}
+  \sum_{s \in S} \sum_{(o,d) \in \Omega} \sum_{(j,k)\in A_{od}}
   q_{ods}\,
   \underbrace{\bigl(d^{\mathrm{orig}}_{oj} + d^{\mathrm{dest}}_{dk} + \lambda\,c_{jk}\bigr)}_{a_{odjks}}\,
   x_{odjks},
@@ -122,8 +134,8 @@ is a weight that converts routing time to the same unit as walking distance.
 \subsection{Constraints}
 
 \begin{align}
-  \sum_{j,k} x_{odjks} &= 1 & &\forall (o,d), s \label{eq:assign} \\
-  x_{odjks} &\le z_{js}, \quad x_{odjks} \le z_{ks} & &\forall (o,d), j, k, s
+  \sum_{(j,k)\in A_{od}} x_{odjks} &= 1 & &\forall (o,d), s \label{eq:assign} \\
+  x_{odjks} &\le z_{js}, \quad x_{odjks} \le z_{ks} & &\forall (o,d), (j,k)\in A_{od}, s
   \label{eq:active} \\
   z_{js} &\le y_j & &\forall j, s \label{eq:build} \\
   \sum_j y_j &= l, \quad \sum_j z_{js} = k & &\forall s \label{eq:budget}
@@ -205,15 +217,15 @@ recourse value function
   \Phi_s(z_s,q_s)
   :=
   \min_{x}
-  \sum_{(o,d)\in\Omega}\sum_{j,k\in J}
+  \sum_{(o,d)\in\Omega}\sum_{(j,k)\in A_{od}}
   q_{ods}\,a_{odjks}\,x_{odjks}
   \label{eq:recourse-value}
 \end{equation}
 subject to
 \begin{align}
-  \sum_{j,k} x_{odjks} &= 1 && \forall (o,d), \label{eq:recourse-assign} \\
+  \sum_{(j,k)\in A_{od}} x_{odjks} &= 1 && \forall (o,d), \label{eq:recourse-assign} \\
   x_{odjks} &\le z_{js},\quad x_{odjks} \le z_{ks}
-  && \forall (o,d),j,k, \label{eq:recourse-active}
+  && \forall (o,d),(j,k)\in A_{od}, \label{eq:recourse-active}
 \end{align}
 with $x_{odjks} \ge 0$.  Integrality is not needed here: for fixed $(o,d,s)$
 the feasible region is a simplex intersected with bound constraints, so an
@@ -226,11 +238,12 @@ minimum assignment cost
   :=
   \min_{x_{od\cdot\cdot s}}
   \left\{
-    \sum_{j,k} a_{odjks}\,x_{odjks}
+    \sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
     :
-    \sum_{j,k} x_{odjks}=1,\;
+    \sum_{(j,k)\in A_{od}} x_{odjks}=1,\;
     x_{odjks}\le z_{js},\;
     x_{odjks}\le z_{ks}
+    \ \forall (j,k)\in A_{od}
   \right\}.
   \label{eq:induced-cost}
 \end{equation}
@@ -276,45 +289,54 @@ The duality is applied only to the \emph{inner} LP, for a \textbf{fixed}
 $z_s$.  With $z_s$ held fixed, the set of active stations is known, and
 $m_{ods}(z_s)$ \eqref{eq:induced-cost} is a deterministic scalar --- the
 minimum feasible assignment cost for OD pair $(o,d)$ given those stations.
-The inner LP then has $q$ as its only variable and $m_{ods}(z_s)$ as an
-ordinary constant coefficient.  LP strong duality applies to this fixed-$z_s$
-inner LP, producing dual constraints that contain $m_{ods}(z_s)$ as a
-parameter.  It is only when we re-introduce the outer minimization over $(y,z)$
-that $m_{ods}(z_s)$ becomes a nonlinear function of a decision variable; the
-$x$-variable substitution in Step 4 handles exactly this.
+The inner LP then has $r$ as its only variable and $m_{ods}(z_s)$ as an
+ordinary constant objective coefficient.  LP duality applies to this
+fixed-$z_s$ inner LP, producing dual constraints that contain $m_{ods}(z_s)$
+as a parameter.  It is only when we re-introduce the outer minimization over
+$(y,z)$ that $m_{ods}(z_s)$ becomes a function of a decision variable; the
+$x$-variable substitution in Step 3 handles exactly this.
 
-\paragraph{Step 1: Form the Lagrangian.}
-Introduce dual variable $\alpha_s \ge 0$ for the total-demand budget
-constraint and $\beta_{ods} \ge 0$ for each per-OD upper-bound constraint.
-The Lagrangian is:
-\begin{align}
-  L(r,\alpha_s,\beta)
-  &= \sum_{(o,d)} m_{ods}\, r_{ods}
-     + \alpha_s \!\left(\overline{Q}_s - \sum_{(o,d)} r_{ods}\right)
-     + \sum_{(o,d)} \beta_{ods}\!\left(\overline{q}_{ods} - r_{ods}\right)
-  \nonumber\\
-  &= \alpha_s\,\overline{Q}_s + \sum_{(o,d)} \beta_{ods}\,\overline{q}_{ods}
-     + \sum_{(o,d)} r_{ods}\,\bigl(m_{ods} - \alpha_s - \beta_{ods}\bigr).
-  \label{eq:lagrangian}
-\end{align}
+\paragraph{Step 1: Identify dual variables from the primal constraints.}
+The inner LP \eqref{eq:inner-max-r} has two families of $\le$ constraints.
+LP duality assigns one non-negative dual variable to each:
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+Primal constraint & RHS & Dual variable \\
+\midrule
+$\displaystyle\sum_{(o,d)} r_{ods} \le \overline{Q}_s$
+  & $\overline{Q}_s$ & $\alpha_s \ge 0$ \\
+$r_{ods} \le \overline{q}_{ods}$, \quad each $(o,d)$
+  & $\overline{q}_{ods}$ & $\beta_{ods} \ge 0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\paragraph{Step 2: Take the supremum over $r \ge 0$.}
-For fixed $(\alpha_s, \beta)$, the supremum of $L$ over $r \ge 0$ is:
+\paragraph{Step 2: Build the dual objective and constraints.}
+For a maximization LP ($\max c^T r$, $Ar \le b$, $r \ge 0$), the dual is
+$\min b^T y$ subject to $A^T y \ge c$, $y \ge 0$.
+
+\textit{Dual objective.}
+Each primal constraint contributes its RHS times its dual variable:
 \[
-  \sup_{r \ge 0} L
-  \;=\;
-  \begin{cases}
-    \alpha_s\,\overline{Q}_s + \displaystyle\sum_{(o,d)} \beta_{ods}\,\overline{q}_{ods}
-    & \text{if } \alpha_s + \beta_{ods} \ge m_{ods} \;\forall (o,d), \\
-    +\infty & \text{otherwise.}
-  \end{cases}
+  \min\quad \overline{Q}_s\,\alpha_s \;+\; \sum_{(o,d)} \overline{q}_{ods}\,\beta_{ods}.
 \]
-When the coefficient $(m_{ods} - \alpha_s - \beta_{ods}) > 0$ for any pair,
-setting $r_{ods} \to \infty$ drives $L \to +\infty$, so the dual must enforce
-$\alpha_s + \beta_{ods} \ge m_{ods}(z_s)$ for all $(o,d)$.
 
-\paragraph{Step 3: Dual LP.}
-The dual of the inner maximization is therefore:
+\textit{Dual constraint for each primal variable $r_{ods}$.}
+Variable $r_{ods}$ has objective coefficient $m_{ods}$ in the primal.
+It appears with coefficient $1$ in the budget constraint (dual: $\alpha_s$)
+and coefficient $1$ in its own box constraint (dual: $\beta_{ods}$), and
+zero in every other box constraint.  The dual constraint for $r_{ods}$ is
+therefore:
+\[
+  1\cdot\alpha_s \;+\; 1\cdot\beta_{ods} \;\ge\; m_{ods}
+  \qquad\Longrightarrow\qquad
+  \alpha_s + \beta_{ods} \ge m_{ods}(z_s).
+\]
+
+\paragraph{Step 3: Dual LP and strong duality.}
+Collecting the above, the dual of \eqref{eq:inner-max-r} is:
 \begin{equation}
   \min_{\alpha_s \ge 0,\;\beta_{ods} \ge 0}
   \quad
@@ -325,8 +347,9 @@ The dual of the inner maximization is therefore:
   \quad \forall (o,d).
   \label{eq:dual}
 \end{equation}
-Strong duality holds since the primal \eqref{eq:inner-max-r} is feasible
-(e.g.\ $r=0$) and bounded.
+Strong duality holds: the primal \eqref{eq:inner-max-r} is feasible ($r=0$)
+and bounded (finite objective on a bounded polytope), so the optimal values
+of the primal and dual coincide.
 
 \paragraph{Step 4: Embed the recourse minimization.}
 The dual constraint \eqref{eq:dual} still contains the recourse value
@@ -334,25 +357,27 @@ $m_{ods}(z_s)$ from \eqref{eq:induced-cost}, which is itself a minimization
 over assignment variables $x$.  We substitute directly: introduce continuous
 assignment witnesses $x_{odjks} \ge 0$ satisfying
 \eqref{eq:recourse-assign}--\eqref{eq:recourse-active}, and replace
-$m_{ods}(z_s)$ with $\sum_{j,k} a_{odjks}\,x_{odjks}$.  The constraint becomes:
+$m_{ods}(z_s)$ with $\sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}$.  The constraint becomes:
 \begin{equation}
   \alpha_s + \beta_{ods}
   \;\ge\;
-  \sum_{j,k} a_{odjks}\,x_{odjks}
+  \sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
   \qquad \forall (o,d),\, s.
   \label{eq:robust-con}
 \end{equation}
 Note that no auxiliary $t_{ods}$ variable is needed: \eqref{eq:robust-con}
 directly links the dual variables to the assignment cost of $x$.
 
-For any feasible $x$, the right-hand side $\sum_{jk}a_{odjks}x_{odjks}$
+For any feasible $x$, the right-hand side
+$\sum_{(j,k)\in A_{od}}a_{odjks}x_{odjks}$
 is an upper bound on $m_{ods}(z_s)$, so \eqref{eq:robust-con} is
 at least as tight as the original dual constraint.  At optimality the
 minimization of $\overline{Q}_s\alpha_s + \sum\overline{q}_{ods}\beta_{ods}$
 drives each $x_{od\cdot\cdot s}$ to minimize its assignment cost --- a smaller
 right-hand side relaxes \eqref{eq:robust-con}, allowing smaller
 $(\alpha_s, \beta_{ods})$, which reduces the objective.  Hence the optimal $x$
-achieves $\sum_{jk}a_{odjks}x_{odjks} = m_{ods}(z_s)$, and the two
+achieves
+$\sum_{(j,k)\in A_{od}}a_{odjks}x_{odjks} = m_{ods}(z_s)$, and the two
 formulations are equivalent.
 
 \paragraph{Robust counterpart MILP.}
@@ -366,16 +391,16 @@ Combining with the outer minimization over $(y,z)$, the full formulation is:
 subject to
 \begin{align}
   \alpha_s + \beta_{ods}
-  &\ge \sum_{j,k} a_{odjks}\,x_{odjks}
+  &\ge \sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
   && \forall (o,d),\, s,
   \label{eq:robust-con-milp}
   \\
-  \sum_{j,k} x_{odjks} &= 1
+  \sum_{(j,k)\in A_{od}} x_{odjks} &= 1
   && \forall (o,d),\, s,
   \label{eq:recourse-counterpart-assign}
   \\
   x_{odjks} &\le z_{js},\quad x_{odjks} \le z_{ks}
-  && \forall (o,d),\, j,k,\, s,
+  && \forall (o,d),\, (j,k)\in A_{od},\, s,
   \label{eq:recourse-counterpart-active}
 \end{align}
 plus \eqref{eq:build}--\eqref{eq:budget}, with $x_{odjks},\alpha_s,\beta_{ods}\ge 0$.
@@ -644,8 +669,9 @@ where $Q_{0.99} > \sum\overline{q}$, meaning a 99th-percentile cap would be
 non-binding).  The default $Q_{0.90}$ is a reasonable starting point: it
 corresponds to a high but historically realistic demand level, and the gap
 $\sum\overline{q} - \overline{Q}_s$ quantifies how much the cap tightens the
-box.  The experiment sweep in \S\ref{sec:cap-sweep} varies this choice to
-measure the resulting price of robustness.
+box.  Section~\ref{sec:cap-sweep} discusses the expected effects of varying
+this choice; the main experiment fixes $Q_{\mathrm{cap}} = 0.90$ and
+$q_{\mathrm{high}} = 0.90$.
 
 \paragraph{Structural observations.}
 \begin{enumerate}
@@ -695,7 +721,7 @@ Both are currently set to 0.90 by default (as used in the empirical analysis of
 each dimension of conservatism affects the solution:
 
 \[
-  q_{\mathrm{high}} \;\in\; \{0.90,\; 0.95\},
+  q_{\mathrm{high}} \;\in\; \{0.90,\; 0.95,\; 0.99\},
   \qquad
   Q_{\mathrm{cap}}  \;\in\; \{0.90,\; 0.95,\; 0.99\}.
 \]
@@ -731,28 +757,80 @@ The expected effects:
         conservative model; the experiment isolates each dimension.
 \end{itemize}
 
-Combined with three station budgets $k \in \{6, 8, 10\}$ and two model variants,
-the full sweep is $2 \times 3 \times 2 \times 3 = 36$ jobs.
+For the implemented May 2025 study on the full Zhuzhou network, we fix
+$l = 50$ and use the existing four-period scenario profile.  We cross
+the two model variants with three active-station budgets
+$k \in \{20, 30, 40\}$, six in-vehicle-time weights
+$\lambda \in \{0, 0.1, 1, 10, 100, 1000\}$, two walking limits
+$\{300, 600\}$\,m, and the three-by-three quantile grid above.  The
+full solve grid therefore has
+$2 \times 3 \times 6 \times 2 \times 3 \times 3 = 648$ configurations.
+For the nominal model, $Q_{\mathrm{cap}}$ and $q_{\mathrm{high}}$ are
+recorded in the job config but have no effect on the solve; the resulting
+redundancy makes it straightforward to isolate each robustness dimension
+when analysing results.
 
-\subsection{Out-of-sample evaluation protocol}
+\subsection{In-sample backtest protocol}
 \label{sec:oos}
 
-For each held-out demand realization $q^{\mathrm{test}}_{ods}$ (from a
-held-out date range or a parametric simulation), compute the realized recourse
-cost:
+We evaluate the two models through an \emph{in-sample backtest}.  In the
+implemented experiment, the calendar window is fixed to May 1, 2025 through
+May 31, 2025.  We use that same month both to calibrate the nominal demand
+inputs and robust uncertainty sets and to replay realized demand day by day.
+For each parameter configuration, we solve the nominal and robust models once to obtain designs
+$(y^\star, z^\star)$.  Here $y^\star$ is fixed for the whole month, while the
+active-station plan is scenario-specific: for each scenario type
+$s \in S$ there is a corresponding station set $z_s^\star$.
+
+The month is then replayed day by day and period by period.  For each realized
+day-period instance, first identify its scenario type
+$s^{\mathrm{test}} \in S$ and realized demand vector
+$q^{\mathrm{test}} = (q^{\mathrm{test}}_{od})_{(o,d)\in\Omega}$.  The
+evaluation then uses the corresponding active-station plan
+$z_{s^{\mathrm{test}}}^\star$ for that period.  In other words, the backtest
+\emph{rotates through} the precomputed scenario-specific station sets according
+to the time period being evaluated, while keeping the global build decision
+$y^\star$ fixed.
+
+For each such realized day-period instance, one need not re-solve a large
+optimization model.  Because the reduced recourse problem is separable across OD
+pairs and has no demand-coupled capacity constraints, the active station plan
+$z_{s^{\mathrm{test}}}^\star$ induces a deterministic lookup table: for each OD
+pair $(o,d)$, pick the cheapest admissible active pair
+$(j^\star_{od,s}, k^\star_{od,s}) \in A_{od}$.  Equivalently, precompute the
+minimum assignment cost table $t^\star_{od,s} = m_{ods}(z_s^\star)$.  The
+realized cost is therefore
 \begin{equation}
-  \mathrm{Cost}(y^\star,z^\star,q^{\mathrm{test}})
+  \mathrm{Cost}(y^\star,z^\star,s^{\mathrm{test}},q^{\mathrm{test}})
   =
-  \sum_{s \in S}
-  \Phi_s(z_s^\star, q_s^{\mathrm{test}}).
+  \Phi_{s^{\mathrm{test}}}(z_{s^{\mathrm{test}}}^\star, q^{\mathrm{test}}).
   \label{eq:realized-cost}
 \end{equation}
+Operationally, evaluation can therefore be implemented as a table lookup rather
+than as a repeated LP solve.
+
 Equivalently, one may evaluate
 \[
-  \sum_{s,(o,d)} q_{ods}^{\mathrm{test}}\,t^\star_{ods},
+  \sum_{(o,d)} q_{od}^{\mathrm{test}}\,t^\star_{od,s^{\mathrm{test}}},
 \]
-where $t^\star_{ods}$ denotes the minimum assignment cost induced by the fixed
-active stations in scenario $s$.
+where $t^\star_{od,s^{\mathrm{test}}}$ denotes the minimum assignment cost
+induced by the fixed active stations for the realized scenario type, with the
+corresponding pair $(j^\star_{od,s}, k^\star_{od,s})$ restricted to lie in the
+admissible walking set $A_{od}$.  The total backtest score for the month is
+obtained by summing or averaging
+\eqref{eq:realized-cost} over all realized day-period instances in the chosen
+calendar window.
+
+This direct cost calculation should be complemented by a simulator-based
+backtest on the same calendar window.  In that second layer, the same fixed
+design $(y^\star, z^\star)$ is replayed in the operational simulator, again
+rotating through the scenario-specific station sets $z_s^\star$ by time period.
+The transformed monthly order file is further split into one file per calendar
+day, and the simulator runs one replay job per day.  The direct lookup-based
+evaluation measures the model-implied assignment cost, while the simulation
+backtest measures how the design performs under the full operational dynamics
+of the simulator.  Both are reported side by side rather than collapsed into a
+single score.
 
 \subsection{Reported metrics}
 
@@ -795,17 +873,31 @@ The experiment is driven by scripts in \texttt{scripts/}:
         TOML configs.
   \item \textbf{\texttt{scripts/02\_submit.sh}}: SLURM array job template.
   \item \textbf{\texttt{scripts/03\_run\_job.jl}}: loads config, runs the
-        appropriate model, evaluates out-of-sample performance, saves
+        appropriate model, exports the solved assignment and station decisions,
+        prepares the transformed May 2025 orders, runs the daily simulation
+        replays, aggregates direct-cost and simulator metrics, and saves
         \texttt{metrics.json}.
+  \item \textbf{\texttt{scripts/04\_prepare\_backtest.jl}}: materializes the
+        month-level transformed orders, daily transformed order files, station
+        and vehicle simulator inputs, and the per-day simulation manifest.
+  \item \textbf{\texttt{scripts/05\_run\_simulation\_day.jl}}: executes one
+        simulator replay job from a single manifest entry.
+  \item \textbf{\texttt{scripts/06\_aggregate\_backtest.jl}}: combines daily
+        simulator outputs into month-level replay metrics.
   \item \textbf{\texttt{scripts/aggregate.jl}}: loads all \texttt{metrics.json}
         files, produces \texttt{analysis/results.csv} and prints summary
         statistics including the price of robustness.
 \end{enumerate}
 
 The sweep in \texttt{experiments/2026-05-01\_nominal\_vs\_robust/} crosses
-the two model variants, three values of $Q_{\mathrm{cap}}$, two values of
-$q_{\mathrm{high}}$ (from \S\ref{sec:cap-sweep}), and three station budgets
-$k \in \{6, 8, 10\}$, giving $2 \times 3 \times 2 \times 3 = 36$ jobs in total.
+the two model variants, three station budgets $k \in \{20, 30, 40\}$, six
+in-vehicle-time weights $\lambda \in \{0, 0.1, 1, 10, 100, 1000\}$, two
+walking limits $\{300, 600\}$\,m, and the three-by-three
+$(Q_{\mathrm{cap}}, q_{\mathrm{high}}) \in \{0.90, 0.95, 0.99\}^2$
+quantile grid, giving $2 \times 3 \times 6 \times 2 \times 3 \times 3 = 648$
+solved configurations in total.  Each solved configuration is then replayed
+on the full May 2025 month, producing one transformed month-level order file
+and 31 daily simulator jobs.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Conclusion}
