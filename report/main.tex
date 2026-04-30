@@ -111,7 +111,7 @@ $d$.  Define the admissible station-pair set
 \[
   A_{od}
   :=
-  \{(j,k) : j \in \Delta(o),\ k \in \Delta(d),\ j \neq k\}.
+  \{(j,k) : j \in \Delta(o),\ k \in \Delta(d)\}.
 \]
 Only pairs in $A_{od}$ may be used to serve OD pair $(o,d)$.
 
@@ -898,6 +898,315 @@ quantile grid, giving $2 \times 3 \times 6 \times 2 \times 3 \times 3 = 648$
 solved configurations in total.  Each solved configuration is then replayed
 on the full May 2025 month, producing one transformed month-level order file
 and 31 daily simulator jobs.
+
+\subsection{Per-scenario Benders reformulation}
+\label{sec:benders}
+
+The extensive-form models above contain a large block of assignment variables
+\(x\), one for each scenario, OD pair, and admissible pickup-dropoff station
+pair. Since the assignment layer is completely determined once the
+scenario-specific active-station vector \(z_s\) is fixed, it is natural to
+eliminate \(x\) from the master problem and recover its effect through
+scenario-specific Benders cuts.
+
+Throughout this section, we write \(p=(o,d)\) for an OD pair, and let
+\(A_p \equiv A_{od}\) denote the admissible station-pair set for that OD pair.
+For a candidate pair \((j,k)\in A_p\), define
+\[
+c_{pjk}
+:=
+d^{\mathrm{orig}}_{oj}+d^{\mathrm{dest}}_{dk}+\lambda\,c_{jk}.
+\]
+For the nominal model, the scenario cost coefficient is \(q_{ps}c_{pjk}\).
+We keep \(\rho_s\) outside the subproblem and place it in the master objective.
+
+\paragraph{Nominal scenario value.}
+For a fixed scenario \(s\) and a fixed activation vector \(z_s\), the nominal
+assignment cost is
+\begin{equation}
+\Phi_s(z_s)
+=
+\min_{x}
+\left\{
+\sum_{p}\sum_{(j,k)\in A_p} q_{ps} c_{pjk} x_{pjks}
+:
+\sum_{(j,k)\in A_p} x_{pjks}=1\ \forall p,\;
+x_{pjks}\le z_{js},\;
+x_{pjks}\le z_{ks},\;
+x_{pjks}\ge 0
+\right\}.
+\label{eq:benders-nominal-subproblem}
+\end{equation}
+
+The Benders master introduces one recourse approximation variable \(\eta_s\) per
+scenario:
+\begin{equation}
+\begin{aligned}
+\min_{y,z,\eta}\quad
+& \sum_{s\in S}\rho_s\,\eta_s \\
+\text{s.t.}\quad
+& z_{js}\le y_j && \forall j,s, \\
+& \sum_{j\in J} y_j = l, \\
+& \sum_{j\in J} z_{js} = k && \forall s, \\
+& y_j,z_{js}\in\{0,1\}, \\
+& \eta_s \ge 0 && \forall s,
+\end{aligned}
+\label{eq:benders-master-nominal}
+\end{equation}
+plus Benders cuts of the form
+\[
+\eta_s \ge \text{valid lower bound on } \Phi_s(z_s).
+\]
+
+\paragraph{Master-side feasibility checks.}
+Since the assignment subproblem is only meaningful when every demand-relevant
+origin and destination has at least one reachable active station, we add simple
+coverage constraints to the master problem.  For the nominal model, define the
+scenario-specific set of demand-relevant locations
+\[
+I_s
+:=
+\left\{
+i\in J:\exists d\in J \text{ such that } q_{ids}>0
+\right\}
+\cup
+\left\{
+i\in J:\exists o\in J \text{ such that } q_{ois}>0
+\right\}.
+\]
+Then impose
+\begin{equation}
+\sum_{j\in \Delta(i)} z_{js}\ge 1
+\qquad \forall i\in I_s,\ s\in S.
+\label{eq:benders-nominal-feasibility-check}
+\end{equation}
+These constraints should not be imposed for all \(i\in J\), since locations
+with no demand in scenario \(s\) need not consume active-station capacity.
+
+For the robust model, the same logic is applied to locations that could carry
+demand under the uncertainty set.  Define
+\[
+I_s^{\mathrm{rob}}
+:=
+\left\{
+i\in J:\exists d\in J \text{ such that } \overline q_{ids}>0
+\right\}
+\cup
+\left\{
+i\in J:\exists o\in J \text{ such that } \overline q_{ois}>0
+\right\},
+\]
+and impose
+\begin{equation}
+\sum_{j\in \Delta(i)} z_{js}\ge 1
+\qquad \forall i\in I_s^{\mathrm{rob}},\ s\in S.
+\label{eq:benders-robust-feasibility-check}
+\end{equation}
+Because the admissible pair set \(A_{od}\) allows \(j=k\), these marginal
+coverage constraints are sufficient to ensure that every demand-relevant OD pair
+has at least one admissible active assignment in the subproblem.
+
+\paragraph{Subproblem solved by inspection.}
+For fixed \(z_s\), \eqref{eq:benders-nominal-subproblem} decomposes by OD pair.
+For each \(p\), define
+\begin{equation}
+m_{ps}(z_s)
+:=
+\min_{\substack{(j,k)\in A_p\\ z_{js}=1,\ z_{ks}=1}}
+c_{pjk}.
+\label{eq:od-inspection-value}
+\end{equation}
+Then
+\begin{equation}
+\Phi_s(z_s)=\sum_p q_{ps}\,m_{ps}(z_s).
+\label{eq:scenario-inspection-value}
+\end{equation}
+Hence the subproblem does not require solving an LP: for each OD pair \(p\), one
+simply scans the admissible pairs \((j,k)\in A_p\) and picks the cheapest pair
+whose two endpoints are active in scenario \(s\).
+
+\paragraph{A valid per-scenario Benders cut.}
+Let \(z_s^m\) be the current scenario activation vector at Benders iteration
+\(m\). For each OD pair \(p\), let
+\[
+u_{ps}^m := m_{ps}(z_s^m),
+\]
+and define, for each admissible pair \((j,k)\in A_p\),
+\[
+\Delta_{pjks}^m := \max\{0,\ u_{ps}^m - c_{pjk}\}.
+\]
+Now define dual multipliers \(\mu_{pjks}^m,\nu_{pjks}^m\ge 0\) as follows:
+\[
+(\mu_{pjks}^m,\nu_{pjks}^m)
+=
+\begin{cases}
+(0,0), & z_{js}^m=1,\ z_{ks}^m=1,\\
+(\Delta_{pjks}^m,0), & z_{js}^m=0,\ z_{ks}^m=1,\\
+(0,\Delta_{pjks}^m), & z_{js}^m=1,\ z_{ks}^m=0,\\
+\left(\frac12\Delta_{pjks}^m,\frac12\Delta_{pjks}^m\right),
+& z_{js}^m=0,\ z_{ks}^m=0.
+\end{cases}
+\]
+These values satisfy
+\[
+u_{ps}^m - \mu_{pjks}^m - \nu_{pjks}^m \le c_{pjk}
+\qquad \forall (j,k)\in A_p,
+\]
+so they form a feasible dual solution of the OD-level assignment problem.
+Therefore the affine function
+\begin{equation}
+\ell_{ps}^m(z_s)
+:=
+u_{ps}^m
+-
+\sum_{(j,k)\in A_p} \mu_{pjks}^m z_{js}
+-
+\sum_{(j,k)\in A_p} \nu_{pjks}^m z_{ks}
+\label{eq:od-affine-lower-bound}
+\end{equation}
+is a valid lower bound on \(m_{ps}(z_s)\) for every \(z_s\), and it is tight at
+the current point \(z_s^m\):
+\[
+\ell_{ps}^m(z_s^m)=m_{ps}(z_s^m)=u_{ps}^m.
+\]
+
+Aggregating over OD pairs yields the per-scenario nominal cut
+\begin{equation}
+\eta_s
+\ge
+\sum_p q_{ps}\,\ell_{ps}^m(z_s).
+\label{eq:nominal-scenario-cut-expanded}
+\end{equation}
+Equivalently, after collecting coefficients by station,
+\begin{equation}
+\eta_s
+\ge
+\beta_s^m
+-
+\sum_{j\in J}\Gamma_{js}^m z_{js}.
+\label{eq:nominal-scenario-cut}
+\end{equation}
+where
+\[
+\beta_s^m := \sum_p q_{ps}u_{ps}^m,
+\]
+and
+\[
+\Gamma_{js}^m
+:=
+\sum_p q_{ps}
+\left(
+\sum_{k:(j,k)\in A_p}\mu_{pjks}^m
++
+\sum_{h:(h,j)\in A_p}\nu_{phjs}^m
+\right).
+\]
+Cut \eqref{eq:nominal-scenario-cut} is a valid Benders cut for scenario \(s\),
+and it is exact at the incumbent \(z_s^m\).
+
+\paragraph{Robust scenario value.}
+For the robust total-demand-cap model, define the scenario value
+\begin{equation}
+\Psi_s(z_s)
+=
+\max_{q_s\in U_s}
+\sum_p q_{ps}\,m_{ps}(z_s),
+\label{eq:robust-scenario-value}
+\end{equation}
+where \(U_s\) is the scenario-\(s\) uncertainty set
+\[
+U_s
+=
+\left\{
+q_s:
+q_{ps}^\ell \le q_{ps} \le q_{ps}^\ell + q_{ps}^\wedge\ \forall p,\quad
+\sum_p (q_{ps}-q_{ps}^\ell)\le B_s
+\right\}.
+\]
+
+The robust master has the same \(y\) and \(z\) variables as the nominal master,
+but the objective is now
+\begin{equation}
+\min_{y,z,\eta}\quad \sum_{s\in S}\eta_s
+\label{eq:benders-master-robust-obj}
+\end{equation}
+subject to the same station-budget and linking constraints, together with
+robust scenario cuts that lower-bound \(\Psi_s(z_s)\).
+
+\paragraph{Robust worst-case demand solved by inspection.}
+At the current Benders iterate \(z_s^m\), first compute the OD-level costs
+\(u_{ps}^m=m_{ps}(z_s^m)\) exactly as in the nominal case by scanning admissible
+active pairs. Then solve
+\[
+\max_{q_s\in U_s} \sum_p q_{ps}u_{ps}^m.
+\]
+This is a continuous knapsack problem. The optimal solution is obtained by
+inspection:
+\begin{enumerate}
+  \item start from the lower bounds \(q_{ps}=q_{ps}^\ell\);
+  \item sort OD pairs \(p\) in decreasing order of \(u_{ps}^m\);
+  \item allocate the remaining budget \(B_s\) greedily to the largest
+        \(u_{ps}^m\), up to the cap \(q_{ps}^\wedge\) for each OD pair.
+\end{enumerate}
+Let \(q_{ps}^{*,m}\) denote the resulting worst-case demand vector.
+
+\paragraph{Robust per-scenario cut.}
+Using the same OD-level affine lower bounds \(\ell_{ps}^m(z_s)\) from
+\eqref{eq:od-affine-lower-bound}, we obtain
+\[
+\Psi_s(z_s)
+=
+\max_{q_s\in U_s}\sum_p q_{ps}m_{ps}(z_s)
+\ge
+\sum_p q_{ps}^{*,m} m_{ps}(z_s)
+\ge
+\sum_p q_{ps}^{*,m} \ell_{ps}^m(z_s).
+\]
+Therefore a valid robust Benders cut for scenario \(s\) is
+\begin{equation}
+\eta_s
+\ge
+\sum_p q_{ps}^{*,m}\,\ell_{ps}^m(z_s).
+\label{eq:robust-scenario-cut-expanded}
+\end{equation}
+After collecting coefficients by station, this becomes
+\begin{equation}
+\eta_s
+\ge
+\bar\beta_s^m
+-
+\sum_{j\in J}\bar\Gamma_{js}^m z_{js}.
+\label{eq:robust-scenario-cut}
+\end{equation}
+where
+\[
+\bar\beta_s^m := \sum_p q_{ps}^{*,m}u_{ps}^m,
+\]
+and
+\[
+\bar\Gamma_{js}^m
+:=
+\sum_p q_{ps}^{*,m}
+\left(
+\sum_{k:(j,k)\in A_p}\mu_{pjks}^m
++
+\sum_{h:(h,j)\in A_p}\nu_{phjs}^m
+\right).
+\]
+Again, the cut is tight at the incumbent \(z_s^m\).
+
+\paragraph{Interpretation.}
+Both the nominal and robust Benders cuts are scenario-specific and involve only
+the activation variables \(z_{js}\) for that scenario. The long-term build
+decision \(y_j\) does not appear directly in the cuts; it couples scenarios only
+through the linking constraints \(z_{js}\le y_j\). This is exactly the
+decomposition structure of the two-stage problem:
+\[
+y \;\rightarrow\; z_s \;\rightarrow\; x_s.
+\]
+The large assignment block \(x\) disappears from the master problem, and the
+scenario recourse value is recovered through cuts that can be generated by
+inspection rather than by repeatedly solving large LPs.
 
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Conclusion}
