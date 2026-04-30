@@ -81,6 +81,12 @@ for base in base_combos
         push!(param_combos, base)
     else
         for ms in generate_combinations(model_specific)
+            if model_type == "RobustTotalDemandCapModel" && haskey(ms, "solve_mode")
+                ms = Dict(
+                    (k == "solve_mode" ? "model.solve_mode" : k) => v
+                    for (k, v) in ms
+                )
+            end
             push!(param_combos, merge(base, ms))
         end
     end
