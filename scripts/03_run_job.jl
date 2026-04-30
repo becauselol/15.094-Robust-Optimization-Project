@@ -44,11 +44,14 @@ cfg = TOML.parsefile(config_file)
 println("✓ Loaded config: $config_file")
 
 params     = get(cfg, "parameters", Dict())
-model_type = get(get(cfg, "model", Dict()), "type", "NominalModel")
+model_cfg  = get(cfg, "model", Dict())
+model_type = get(model_cfg, "type", "NominalModel")
+solve_mode = Symbol(get(model_cfg, "solve_mode", "cutting_plane"))
 
 println("\nParameters:")
 for (k, v) in params; println("  $k = $v"); end
 println("  model.type = $model_type")
+println("  model.solve_mode = $solve_mode")
 println()
 
 # ── Run directory ─────────────────────────────────────────────────────────────
@@ -132,9 +135,9 @@ try
             k, l;
             in_vehicle_time_weight = lambda_val,
             max_walking_distance   = max_walking_distance,
-            q_low = q_low,
             q_hat = q_hat,
             B     = B,
+            solve_mode = solve_mode,
         )
         run_opt(robust_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
 
@@ -264,4 +267,3 @@ catch e
 finally
     close(logfile)
 end
-
