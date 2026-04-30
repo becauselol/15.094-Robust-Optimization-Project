@@ -67,6 +67,7 @@ def collect_runs(exp_dir: Path) -> tuple[dict[tuple[int, float], list[dict[str, 
             "in_vehicle_time_weight": in_vehicle_time_weight,
             "april_weighted_total_cost": get_weighted_total_cost(metrics, "April"),
             "may_weighted_total_cost": get_weighted_total_cost(metrics, "May"),
+            "demand_quantile": metrics.get("demand_quantile"),
             "Q_cap_quantile": metrics.get("Q_cap_quantile"),
             "q_high_quantile": metrics.get("q_high_quantile"),
         }
@@ -75,9 +76,15 @@ def collect_runs(exp_dir: Path) -> tuple[dict[tuple[int, float], list[dict[str, 
         if model_type == "NominalModel":
             nominal_by_key[key].append(record)
         elif model_type == "RobustTotalDemandCapModel":
-            q_cap = record["Q_cap_quantile"]
-            q_high = record["q_high_quantile"]
-            if q_cap is None or q_high is None or q_cap != q_high:
+            quantile = record["demand_quantile"]
+            if quantile is None:
+                q_cap = record["Q_cap_quantile"]
+                q_high = record["q_high_quantile"]
+                if q_cap is None or q_high is None or q_cap != q_high:
+                    continue
+                quantile = q_cap
+            record["comparison_quantile"] = quantile
+            if quantile is None:
                 continue
             robust_by_key[key].append(record)
 
@@ -93,7 +100,7 @@ def build_rows(exp_dir: Path) -> list[dict[str, Any]]:
         robust_runs = sorted(
             robust_by_key[key],
             key=lambda row: (
-                row["Q_cap_quantile"],
+                row["comparison_quantile"],
                 row["job_id"] if row["job_id"] is not None else -1,
                 row["timestamp"] or "",
             ),
@@ -124,7 +131,7 @@ def build_rows(exp_dir: Path) -> list[dict[str, Any]]:
                             "k": key[0],
                             "in_vehicle_time_weight": key[1],
                             "month": month,
-                            "quantile": robust["Q_cap_quantile"],
+                            "quantile": robust["comparison_quantile"],
                             "nominal_job_id": nominal["job_id"],
                             "robust_job_id": robust["job_id"],
                             "nominal_weighted_total_cost": nominal_cost,
