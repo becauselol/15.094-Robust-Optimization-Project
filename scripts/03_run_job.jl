@@ -181,8 +181,35 @@ try
         open(joinpath(run_dir, "metrics.json"), "w") do f
             JSON.print(f, metrics, 4)
         end
+        if get(result.metadata, "solve_mode", nothing) == "cutting_plane"
+            cp_log = Dict(
+                "solve_mode" => "cutting_plane",
+                "cutting_plane_iterations" => get(result.metadata, "cutting_plane_iterations", 0),
+                "cutting_plane_converged" => get(result.metadata, "cutting_plane_converged", false),
+                "initial_cuts_added" => get(result.metadata, "initial_cuts_added", 0),
+                "iteration_log" => get(result.metadata, "iteration_log", Any[]),
+                "cut_log" => get(result.metadata, "cut_log", Any[]),
+            )
+            open(joinpath(run_dir, "cutting_plane_log.json"), "w") do f
+                JSON.print(f, cp_log, 4)
+            end
+        end
         println("\n✓ Job $job_id $(result.termination_status) ($model_type) — $(run_dir)")
         exit(0)
+    end
+
+    if get(result.metadata, "solve_mode", nothing) == "cutting_plane"
+        cp_log = Dict(
+            "solve_mode" => "cutting_plane",
+            "cutting_plane_iterations" => get(result.metadata, "cutting_plane_iterations", 0),
+            "cutting_plane_converged" => get(result.metadata, "cutting_plane_converged", false),
+            "initial_cuts_added" => get(result.metadata, "initial_cuts_added", 0),
+            "iteration_log" => get(result.metadata, "iteration_log", Any[]),
+            "cut_log" => get(result.metadata, "cut_log", Any[]),
+        )
+        open(joinpath(run_dir, "cutting_plane_log.json"), "w") do f
+            JSON.print(f, cp_log, 4)
+        end
     end
 
     # ── Export solution + prepare backtest artifacts ─────────────────────────
