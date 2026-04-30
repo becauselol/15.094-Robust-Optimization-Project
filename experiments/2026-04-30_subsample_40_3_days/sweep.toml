@@ -1,0 +1,18 @@
+# Sweep parameters for 40-station subsampled experiment.
+
+"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+
+k = [20]
+
+in_vehicle_time_weight = [0.0, 10.0, 100.0, 1000.0]
+
+max_walking_distance = [300.0]
+
+[model_sweep.RobustTotalDemandCapModel]
+demand_quantile = [0.90, 0.95, 0.99]
+solve_mode = ["exact_dual"]
+
+# Shared calibration quantile used for both per-OD upper bounds q̄_ods and
+# the total-demand budget cap B_s.
+
+# Total jobs: (2 × 3 × 6 × 2) base × (1 Nominal + 3 Robust) = 36 + 108 = 144
