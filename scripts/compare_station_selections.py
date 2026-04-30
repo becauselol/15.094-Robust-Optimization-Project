@@ -6,7 +6,9 @@ The script scans runs/* and matches nominal vs robust runs on:
   - k
   - in_vehicle_time_weight
 
-For robust runs, only comparisons with Q_cap_quantile == q_high_quantile are kept.
+For robust runs, the script prefers `demand_quantile` as the canonical
+quantile field. Older runs using `Q_cap_quantile == q_high_quantile` are still
+supported.
 
 For each comparable pair, it computes:
   - whether y_j selected stations are exactly the same
@@ -85,6 +87,7 @@ def collect_runs(exp_dir: Path) -> tuple[dict[tuple[int, float], list[dict[str, 
             "timestamp": metrics.get("timestamp"),
             "k": k,
             "in_vehicle_time_weight": in_vehicle_time_weight,
+            "demand_quantile": metrics.get("demand_quantile"),
             "Q_cap_quantile": metrics.get("Q_cap_quantile"),
             "q_high_quantile": metrics.get("q_high_quantile"),
             "y_j": parse_station_selection(run_dir),
@@ -95,9 +98,15 @@ def collect_runs(exp_dir: Path) -> tuple[dict[tuple[int, float], list[dict[str, 
         if model_type == "NominalModel":
             nominal_by_key[key].append(record)
         elif model_type == "RobustTotalDemandCapModel":
-            q_cap = record["Q_cap_quantile"]
-            q_high = record["q_high_quantile"]
-            if q_cap is None or q_high is None or q_cap != q_high:
+            quantile = record["demand_quantile"]
+            if quantile is None:
+                q_cap = record["Q_cap_quantile"]
+                q_high = record["q_high_quantile"]
+                if q_cap is None or q_high is None or q_cap != q_high:
+                    continue
+                quantile = q_cap
+            record["comparison_quantile"] = quantile
+            if quantile is None:
                 continue
             robust_by_key[key].append(record)
 
@@ -116,7 +125,7 @@ def build_rows(exp_dir: Path) -> list[dict[str, Any]]:
         robust_runs = sorted(
             robust_by_key[key],
             key=lambda row: (
-                row["Q_cap_quantile"],
+                row["comparison_quantile"],
                 row["job_id"] if row["job_id"] is not None else -1,
                 row["timestamp"] or "",
             ),
@@ -134,7 +143,7 @@ def build_rows(exp_dir: Path) -> list[dict[str, Any]]:
                     {
                         "k": key[0],
                         "in_vehicle_time_weight": key[1],
-                        "quantile": robust["Q_cap_quantile"],
+                        "quantile": robust["comparison_quantile"],
                         "nominal_job_id": nominal["job_id"],
                         "robust_job_id": robust["job_id"],
                         "y_j_exact_same": y_nom == y_rob,
