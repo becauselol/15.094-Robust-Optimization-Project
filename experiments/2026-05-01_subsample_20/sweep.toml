@@ -1,0 +1,15 @@
+# Sweep parameters for 20-station subsampled experiment.
+
+"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+
+k = [7, 10, 12]
+
+in_vehicle_time_weight = [0.0, 0.1, 1.0, 10.0, 100.0, 1000.0]
+
+max_walking_distance = [300.0, 600.0]
+
+[model_sweep.RobustTotalDemandCapModel]
+Q_cap_quantile  = [0.90, 0.95, 0.99]
+q_high_quantile = [0.90, 0.95, 0.99]
+
+# Total jobs: (2 × 2 × 6 × 2) base × (1 Nominal + 3×3 Robust) = 24 + 216 = 240

@@ -1,24 +1,26 @@
 # Sweep parameters for nominal vs robust experiment.
-# 01_setup.jl takes the Cartesian product of all arrays.
-# These override [parameters] and [model] in base.toml.
+# 01_setup.jl takes the Cartesian product of all top-level arrays, then multiplies
+# each combination by the model-specific params in [model_sweep.<ModelType>].
 
 # Two model variants
 "model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
 
 # Active stations per scenario
-k = [20, 30, 40]
+k = [25, 30, 35, 40]
 
 # In-vehicle time weight λ (converts routing time to same unit as walking distance)
 in_vehicle_time_weight = [0.0, 0.1, 1.0, 10.0, 100.0, 1000.0]
 
-# Walking distance limit (metres)
+# Walking distance limit (seconds of walking time)
 max_walking_distance = [300.0, 600.0]
 
-# Calibration percentile for Q̄_s — the total-demand cap
-# (ignored by NominalModel; robust model recomputes bounds when this differs from stored)
+# Model-specific sweep parameters — expanded only for the matching model type.
+# NominalModel has no model-specific params so it gets 1 × the base combos.
+# RobustTotalDemandCapModel sweeps calibration quantiles.
+[model_sweep.RobustTotalDemandCapModel]
+# Calibration percentile for Q̄_s — the total-demand budget cap
 Q_cap_quantile = [0.90, 0.95, 0.99]
-
 # Calibration percentile for per-OD upper bounds q̄_ods
 q_high_quantile = [0.90, 0.95, 0.99]
 
-# Total jobs: 2 × 3 × 6 × 2 × 3 × 3 = 648
+# Total jobs: (2 × 3 × 6 × 2) base  ×  (1 Nominal + 3×3 Robust) = 36 + 324 = 360

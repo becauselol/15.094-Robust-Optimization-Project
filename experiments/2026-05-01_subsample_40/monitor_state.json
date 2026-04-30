@@ -1,0 +1,1371 @@
+{
+  "jobs": {
+    "1": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 1,
+      "submitted_at": 1777533854.1468742,
+      "retry_count": 0
+    },
+    "2": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 2,
+      "submitted_at": 1777533854.1468787,
+      "retry_count": 0
+    },
+    "3": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 3,
+      "submitted_at": 1777533854.14688,
+      "retry_count": 0
+    },
+    "4": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 4,
+      "submitted_at": 1777533854.1468809,
+      "retry_count": 0
+    },
+    "5": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 5,
+      "submitted_at": 1777533854.1468816,
+      "retry_count": 0
+    },
+    "6": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 6,
+      "submitted_at": 1777533854.146882,
+      "retry_count": 0
+    },
+    "7": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 7,
+      "submitted_at": 1777533854.1468825,
+      "retry_count": 0
+    },
+    "8": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 8,
+      "submitted_at": 1777533854.146883,
+      "retry_count": 0
+    },
+    "9": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 9,
+      "submitted_at": 1777533854.1468835,
+      "retry_count": 0
+    },
+    "10": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 10,
+      "submitted_at": 1777533854.1468844,
+      "retry_count": 0
+    },
+    "11": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 11,
+      "submitted_at": 1777533854.146885,
+      "retry_count": 0
+    },
+    "12": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 12,
+      "submitted_at": 1777533854.1468856,
+      "retry_count": 0
+    },
+    "13": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 13,
+      "submitted_at": 1777533854.1468863,
+      "retry_count": 0
+    },
+    "14": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 14,
+      "submitted_at": 1777533854.1468868,
+      "retry_count": 0
+    },
+    "15": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 15,
+      "submitted_at": 1777533854.1468875,
+      "retry_count": 0
+    },
+    "16": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 16,
+      "submitted_at": 1777533854.146888,
+      "retry_count": 0
+    },
+    "17": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 17,
+      "submitted_at": 1777533854.1468885,
+      "retry_count": 0
+    },
+    "18": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 18,
+      "submitted_at": 1777533854.146889,
+      "retry_count": 0
+    },
+    "19": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 19,
+      "submitted_at": 1777535955.5738447,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "9.39%"
+    },
+    "20": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 20,
+      "submitted_at": 1777535955.5738487,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "9.75%"
+    },
+    "21": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 21,
+      "submitted_at": 1777535955.5738497,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "9.47%"
+    },
+    "22": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 22,
+      "submitted_at": 1777535955.5738504,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "10.1%"
+    },
+    "23": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 23,
+      "submitted_at": 1777535955.5738509,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "10.8%"
+    },
+    "24": {
+      "status": "no_restart",
+      "array_job_id": "12882397",
+      "task_id": 24,
+      "submitted_at": 1777535955.5738518,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "11.3%"
+    },
+    "25": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 25,
+      "submitted_at": 1777536256.259311,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "14.9%"
+    },
+    "26": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 26,
+      "submitted_at": 1777536256.2593155,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "13.5%"
+    },
+    "27": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 27,
+      "submitted_at": 1777536256.259317,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "14.0%"
+    },
+    "28": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 28,
+      "submitted_at": 1777536256.259318,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "26.4%"
+    },
+    "29": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 29,
+      "submitted_at": 1777536256.2593193,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "22.5%"
+    },
+    "30": {
+      "status": "no_restart",
+      "array_job_id": "12882438",
+      "task_id": 30,
+      "submitted_at": 1777536256.25932,
+      "retry_count": 1,
+      "time_limit_min": 60,
+      "no_restart_reason": "TIMEOUT+cap(60min)",
+      "integrality_gap": "26.1%"
+    },
+    "31": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 31,
+      "submitted_at": 1777537758.3472455,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "32": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 32,
+      "submitted_at": 1777537758.347252,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "33": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 33,
+      "submitted_at": 1777537758.347253,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "34": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 34,
+      "submitted_at": 1777537758.3472538,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "35": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 35,
+      "submitted_at": 1777537758.3472548,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "36": {
+      "status": "submitted",
+      "array_job_id": "12882799",
+      "task_id": 36,
+      "submitted_at": 1777537758.3472555,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "37": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 37,
+      "submitted_at": 1777538058.9900615,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "38": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 38,
+      "submitted_at": 1777538058.9900653,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "39": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 39,
+      "submitted_at": 1777538058.9900665,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "40": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 40,
+      "submitted_at": 1777538058.990067,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "41": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 41,
+      "submitted_at": 1777538058.9900675,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "42": {
+      "status": "submitted",
+      "array_job_id": "12882906",
+      "task_id": 42,
+      "submitted_at": 1777538058.990068,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "43": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 43,
+      "submitted_at": 1777539560.0866413,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "44": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 44,
+      "submitted_at": 1777539560.086645,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "45": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 45,
+      "submitted_at": 1777539560.0866458,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "46": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 46,
+      "submitted_at": 1777539560.0866463,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "47": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 47,
+      "submitted_at": 1777539560.0866468,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "48": {
+      "status": "submitted",
+      "array_job_id": "12883152",
+      "task_id": 48,
+      "submitted_at": 1777539560.0866473,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "49": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 49,
+      "submitted_at": 1777539860.7278502,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "50": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 50,
+      "submitted_at": 1777539860.727859,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "51": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 51,
+      "submitted_at": 1777539860.7278602,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "52": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 52,
+      "submitted_at": 1777539860.7278612,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "53": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 53,
+      "submitted_at": 1777539860.7278621,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "54": {
+      "status": "submitted",
+      "array_job_id": "12883230",
+      "task_id": 54,
+      "submitted_at": 1777539860.7278626,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "55": {
+      "status": "submitted",
+      "array_job_id": "12883552",
+      "task_id": 55,
+      "submitted_at": 1777541362.3178704,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "56": {
+      "status": "submitted",
+      "array_job_id": "12883551",
+      "task_id": 56,
+      "submitted_at": 1777541362.2380269,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "57": {
+      "status": "submitted",
+      "array_job_id": "12883551",
+      "task_id": 57,
+      "submitted_at": 1777541362.2380307,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "58": {
+      "status": "submitted",
+      "array_job_id": "12883551",
+      "task_id": 58,
+      "submitted_at": 1777541362.2380314,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "59": {
+      "status": "submitted",
+      "array_job_id": "12883551",
+      "task_id": 59,
+      "submitted_at": 1777541362.238032,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "60": {
+      "status": "submitted",
+      "array_job_id": "12883551",
+      "task_id": 60,
+      "submitted_at": 1777541362.2380323,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "61": {
+      "status": "submitted",
+      "array_job_id": "12883671",
+      "task_id": 61,
+      "submitted_at": 1777541662.6722307,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "62": {
+      "status": "submitted",
+      "array_job_id": "12883552",
+      "task_id": 62,
+      "submitted_at": 1777541362.3178735,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "63": {
+      "status": "submitted",
+      "array_job_id": "12883672",
+      "task_id": 63,
+      "submitted_at": 1777541662.7502248,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "64": {
+      "status": "submitted",
+      "array_job_id": "12883503",
+      "task_id": 64,
+      "submitted_at": 1777541061.4030404,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "65": {
+      "status": "submitted",
+      "array_job_id": "12883552",
+      "task_id": 65,
+      "submitted_at": 1777541362.3178744,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "66": {
+      "status": "submitted",
+      "array_job_id": "12883503",
+      "task_id": 66,
+      "submitted_at": 1777541061.4030437,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "67": {
+      "status": "submitted",
+      "array_job_id": "12884338",
+      "task_id": 67,
+      "submitted_at": 1777542263.1331923,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "68": {
+      "status": "submitted",
+      "array_job_id": "12884423",
+      "task_id": 68,
+      "submitted_at": 1777542563.5553522,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "69": {
+      "status": "submitted",
+      "array_job_id": "12884423",
+      "task_id": 69,
+      "submitted_at": 1777542563.5553553,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "70": {
+      "status": "submitted",
+      "array_job_id": "12884423",
+      "task_id": 70,
+      "submitted_at": 1777542563.5553563,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "71": {
+      "status": "submitted",
+      "array_job_id": "12884466",
+      "task_id": 71,
+      "submitted_at": 1777542863.9181855,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "72": {
+      "status": "submitted",
+      "array_job_id": "12884466",
+      "task_id": 72,
+      "submitted_at": 1777542863.9181888,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "73": {
+      "status": "submitted",
+      "array_job_id": "12884580",
+      "task_id": 73,
+      "submitted_at": 1777543464.7775736,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "74": {
+      "status": "submitted",
+      "array_job_id": "12884530",
+      "task_id": 74,
+      "submitted_at": 1777543164.2676933,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "75": {
+      "status": "submitted",
+      "array_job_id": "12884530",
+      "task_id": 75,
+      "submitted_at": 1777543164.267697,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "76": {
+      "status": "submitted",
+      "array_job_id": "12884580",
+      "task_id": 76,
+      "submitted_at": 1777543464.7775776,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "77": {
+      "status": "submitted",
+      "array_job_id": "12884580",
+      "task_id": 77,
+      "submitted_at": 1777543464.7775788,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "78": {
+      "status": "submitted",
+      "array_job_id": "12884580",
+      "task_id": 78,
+      "submitted_at": 1777543464.7775793,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "79": {
+      "status": "submitted",
+      "array_job_id": "12884786",
+      "task_id": 79,
+      "submitted_at": 1777544065.163883,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "80": {
+      "status": "submitted",
+      "array_job_id": "12884853",
+      "task_id": 80,
+      "submitted_at": 1777544365.6074042,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "81": {
+      "status": "submitted",
+      "array_job_id": "12884853",
+      "task_id": 81,
+      "submitted_at": 1777544365.6074102,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "82": {
+      "status": "submitted",
+      "array_job_id": "12884923",
+      "task_id": 82,
+      "submitted_at": 1777544666.044133,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "83": {
+      "status": "submitted",
+      "array_job_id": "12884854",
+      "task_id": 83,
+      "submitted_at": 1777544365.690732,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "84": {
+      "status": "submitted",
+      "array_job_id": "12884923",
+      "task_id": 84,
+      "submitted_at": 1777544666.0441363,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "85": {
+      "status": "submitted",
+      "array_job_id": "12884994",
+      "task_id": 85,
+      "submitted_at": 1777544966.4038472,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "86": {
+      "status": "submitted",
+      "array_job_id": "12884994",
+      "task_id": 86,
+      "submitted_at": 1777544966.403851,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "87": {
+      "status": "submitted",
+      "array_job_id": "12885097",
+      "task_id": 87,
+      "submitted_at": 1777545267.0353894,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "88": {
+      "status": "submitted",
+      "array_job_id": "12885097",
+      "task_id": 88,
+      "submitted_at": 1777545267.0353928,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "89": {
+      "status": "submitted",
+      "array_job_id": "12885097",
+      "task_id": 89,
+      "submitted_at": 1777545267.0353937,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "90": {
+      "status": "submitted",
+      "array_job_id": "12885184",
+      "task_id": 90,
+      "submitted_at": 1777545567.355813,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "91": {
+      "status": "submitted",
+      "array_job_id": "12885273",
+      "task_id": 91,
+      "submitted_at": 1777545867.6592023,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "92": {
+      "status": "submitted",
+      "array_job_id": "12885345",
+      "task_id": 92,
+      "submitted_at": 1777546168.1065574,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "93": {
+      "status": "submitted",
+      "array_job_id": "12885427",
+      "task_id": 93,
+      "submitted_at": 1777546468.7126634,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "94": {
+      "status": "submitted",
+      "array_job_id": "12885427",
+      "task_id": 94,
+      "submitted_at": 1777546468.7126696,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "95": {
+      "status": "submitted",
+      "array_job_id": "12885346",
+      "task_id": 95,
+      "submitted_at": 1777546168.1892538,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "96": {
+      "status": "submitted",
+      "array_job_id": "12885427",
+      "task_id": 96,
+      "submitted_at": 1777546468.7126706,
+      "retry_count": 1,
+      "time_limit_min": 60
+    },
+    "97": {
+      "status": "submitted",
+      "array_job_id": "12885444",
+      "task_id": 97,
+      "submitted_at": 1777546769.0907378,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "98": {
+      "status": "submitted",
+      "array_job_id": "12885346",
+      "task_id": 98,
+      "submitted_at": 1777546168.189257,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "99": {
+      "status": "submitted",
+      "array_job_id": "12885428",
+      "task_id": 99,
+      "submitted_at": 1777546468.7905705,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "100": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 100,
+      "submitted_at": 1777533854.146933,
+      "retry_count": 0
+    },
+    "101": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 101,
+      "submitted_at": 1777533854.1469336,
+      "retry_count": 0
+    },
+    "102": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 102,
+      "submitted_at": 1777533854.146934,
+      "retry_count": 0
+    },
+    "103": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 103,
+      "submitted_at": 1777533854.1469345,
+      "retry_count": 0
+    },
+    "104": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 104,
+      "submitted_at": 1777533854.146935,
+      "retry_count": 0
+    },
+    "105": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 105,
+      "submitted_at": 1777533854.1469352,
+      "retry_count": 0
+    },
+    "106": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 106,
+      "submitted_at": 1777533854.1469357,
+      "retry_count": 0
+    },
+    "107": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 107,
+      "submitted_at": 1777533854.1469364,
+      "retry_count": 0
+    },
+    "108": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 108,
+      "submitted_at": 1777533854.146937,
+      "retry_count": 0
+    },
+    "109": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 109,
+      "submitted_at": 1777533854.1469374,
+      "retry_count": 0
+    },
+    "110": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 110,
+      "submitted_at": 1777533854.1469376,
+      "retry_count": 0
+    },
+    "111": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 111,
+      "submitted_at": 1777533854.146938,
+      "retry_count": 0
+    },
+    "112": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 112,
+      "submitted_at": 1777533854.1469386,
+      "retry_count": 0
+    },
+    "113": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 113,
+      "submitted_at": 1777533854.146939,
+      "retry_count": 0
+    },
+    "114": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 114,
+      "submitted_at": 1777533854.1469393,
+      "retry_count": 0
+    },
+    "115": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 115,
+      "submitted_at": 1777533854.14694,
+      "retry_count": 0
+    },
+    "116": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 116,
+      "submitted_at": 1777533854.1469405,
+      "retry_count": 0
+    },
+    "117": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 117,
+      "submitted_at": 1777533854.146941,
+      "retry_count": 0
+    },
+    "118": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 118,
+      "submitted_at": 1777533854.1469414,
+      "retry_count": 0
+    },
+    "119": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 119,
+      "submitted_at": 1777533854.146942,
+      "retry_count": 0
+    },
+    "120": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 120,
+      "submitted_at": 1777533854.1469421,
+      "retry_count": 0
+    },
+    "121": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 121,
+      "submitted_at": 1777533854.1469426,
+      "retry_count": 0
+    },
+    "122": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 122,
+      "submitted_at": 1777533854.1469433,
+      "retry_count": 0
+    },
+    "123": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 123,
+      "submitted_at": 1777533854.1469438,
+      "retry_count": 0
+    },
+    "124": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 124,
+      "submitted_at": 1777533854.1469443,
+      "retry_count": 0
+    },
+    "125": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 125,
+      "submitted_at": 1777533854.1469448,
+      "retry_count": 0
+    },
+    "126": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 126,
+      "submitted_at": 1777533854.1469452,
+      "retry_count": 0
+    },
+    "127": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 127,
+      "submitted_at": 1777533854.1469455,
+      "retry_count": 0
+    },
+    "128": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 128,
+      "submitted_at": 1777533854.146946,
+      "retry_count": 0
+    },
+    "129": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 129,
+      "submitted_at": 1777533854.1469467,
+      "retry_count": 0
+    },
+    "130": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 130,
+      "submitted_at": 1777533854.1469471,
+      "retry_count": 0
+    },
+    "131": {
+      "status": "submitted",
+      "array_job_id": "12885787",
+      "task_id": 131,
+      "submitted_at": 1777548270.090152,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "132": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 132,
+      "submitted_at": 1777533854.1469479,
+      "retry_count": 0
+    },
+    "133": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 133,
+      "submitted_at": 1777533854.1469483,
+      "retry_count": 0
+    },
+    "134": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 134,
+      "submitted_at": 1777533854.1469488,
+      "retry_count": 0
+    },
+    "135": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 135,
+      "submitted_at": 1777533854.1469493,
+      "retry_count": 0
+    },
+    "136": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 136,
+      "submitted_at": 1777533854.1469495,
+      "retry_count": 0
+    },
+    "137": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 137,
+      "submitted_at": 1777533854.1469502,
+      "retry_count": 0
+    },
+    "138": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 138,
+      "submitted_at": 1777533854.1469507,
+      "retry_count": 0
+    },
+    "139": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 139,
+      "submitted_at": 1777533854.1469512,
+      "retry_count": 0
+    },
+    "140": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 140,
+      "submitted_at": 1777533854.1469517,
+      "retry_count": 0
+    },
+    "141": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 141,
+      "submitted_at": 1777533854.1469522,
+      "retry_count": 0
+    },
+    "142": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 142,
+      "submitted_at": 1777533854.1469524,
+      "retry_count": 0
+    },
+    "143": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 143,
+      "submitted_at": 1777533854.1469529,
+      "retry_count": 0
+    },
+    "144": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 144,
+      "submitted_at": 1777533854.1469536,
+      "retry_count": 0
+    },
+    "145": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 145,
+      "submitted_at": 1777533854.146954,
+      "retry_count": 0
+    },
+    "146": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 146,
+      "submitted_at": 1777533854.1469545,
+      "retry_count": 0
+    },
+    "147": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 147,
+      "submitted_at": 1777533854.1469548,
+      "retry_count": 0
+    },
+    "148": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 148,
+      "submitted_at": 1777533854.1469553,
+      "retry_count": 0
+    },
+    "149": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 149,
+      "submitted_at": 1777533854.1469557,
+      "retry_count": 0
+    },
+    "150": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 150,
+      "submitted_at": 1777533854.1469562,
+      "retry_count": 0
+    },
+    "151": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 151,
+      "submitted_at": 1777533854.1469567,
+      "retry_count": 0
+    },
+    "152": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 152,
+      "submitted_at": 1777533854.1469574,
+      "retry_count": 0
+    },
+    "153": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 153,
+      "submitted_at": 1777533854.1469576,
+      "retry_count": 0
+    },
+    "154": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 154,
+      "submitted_at": 1777533854.1469584,
+      "retry_count": 0
+    },
+    "155": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 155,
+      "submitted_at": 1777533854.1469586,
+      "retry_count": 0
+    },
+    "156": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 156,
+      "submitted_at": 1777533854.1469593,
+      "retry_count": 0
+    },
+    "157": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 157,
+      "submitted_at": 1777533854.1469595,
+      "retry_count": 0
+    },
+    "158": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 158,
+      "submitted_at": 1777533854.14696,
+      "retry_count": 0
+    },
+    "159": {
+      "status": "submitted",
+      "array_job_id": "12886221",
+      "task_id": 159,
+      "submitted_at": 1777549470.9794002,
+      "retry_count": 1,
+      "mem_gb": 64
+    },
+    "160": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 160,
+      "submitted_at": 1777533854.1469612,
+      "retry_count": 0
+    },
+    "161": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 161,
+      "submitted_at": 1777533854.1469617,
+      "retry_count": 0
+    },
+    "162": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 162,
+      "submitted_at": 1777533854.146962,
+      "retry_count": 0
+    },
+    "163": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 163,
+      "submitted_at": 1777533854.1469626,
+      "retry_count": 0
+    },
+    "164": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 164,
+      "submitted_at": 1777533854.146963,
+      "retry_count": 0
+    },
+    "165": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 165,
+      "submitted_at": 1777533854.1469634,
+      "retry_count": 0
+    },
+    "166": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 166,
+      "submitted_at": 1777533854.146964,
+      "retry_count": 0
+    },
+    "167": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 167,
+      "submitted_at": 1777533854.1469646,
+      "retry_count": 0
+    },
+    "168": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 168,
+      "submitted_at": 1777533854.1469648,
+      "retry_count": 0
+    },
+    "169": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 169,
+      "submitted_at": 1777533854.1469653,
+      "retry_count": 0
+    },
+    "170": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 170,
+      "submitted_at": 1777533854.1469657,
+      "retry_count": 0
+    },
+    "171": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 171,
+      "submitted_at": 1777533854.146966,
+      "retry_count": 0
+    },
+    "172": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 172,
+      "submitted_at": 1777533854.1469665,
+      "retry_count": 0
+    },
+    "173": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 173,
+      "submitted_at": 1777533854.146967,
+      "retry_count": 0
+    },
+    "174": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 174,
+      "submitted_at": 1777533854.1469676,
+      "retry_count": 0
+    },
+    "175": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 175,
+      "submitted_at": 1777533854.1469681,
+      "retry_count": 0
+    },
+    "176": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 176,
+      "submitted_at": 1777533854.1469684,
+      "retry_count": 0
+    },
+    "177": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 177,
+      "submitted_at": 1777533854.1469688,
+      "retry_count": 0
+    },
+    "178": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 178,
+      "submitted_at": 1777533854.1469693,
+      "retry_count": 0
+    },
+    "179": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 179,
+      "submitted_at": 1777533854.1469698,
+      "retry_count": 0
+    },
+    "180": {
+      "status": "completed",
+      "array_job_id": "12881908",
+      "task_id": 180,
+      "submitted_at": 1777533854.14697,
+      "retry_count": 0
+    }
+  }
+}

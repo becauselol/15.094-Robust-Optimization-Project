@@ -17,8 +17,8 @@
 #SBATCH --mem=64G
 #SBATCH --array=1-1          # ADJUST: replace with total job count from 01_setup.jl
 #SBATCH --time=02:00:00
-#SBATCH -o slurm_logs/job-%A_%a.out
-#SBATCH -e slurm_logs/job-%A_%a.err
+#SBATCH -o experiments/EXPERIMENT_NAME/slurm_logs/job-%A_%a.out
+#SBATCH -e experiments/EXPERIMENT_NAME/slurm_logs/job-%A_%a.err
 
 # ── Edit this ────────────────────────────────────────────────────────────────
 EXPERIMENT="experiments/EXPERIMENT_NAME"   # relative to project root
@@ -59,7 +59,7 @@ fi
 
 echo "===== Running job $JOB_ID ====="
 mkdir -p "$EXP_DIR/slurm_logs"
-julia scripts/03_run_job.jl "$EXP_DIR" "$JOB_ID"
+srun --unbuffered julia scripts/03_run_job.jl "$EXP_DIR" "$JOB_ID"
 
 EXIT_CODE=$?
 echo ""

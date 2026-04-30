@@ -14,6 +14,18 @@ function backtest_model_type(model_type::String)::String
     error("No backtest transform mapping defined for model_type=$model_type")
 end
 
+# NominalTwoStageODModel appears in run metadata as the model_type field; map it to the
+# same backtest transform as ClusteringTwoStageODModel.
+function backtest_model_type_from_run(run_dir::String)::String
+    metrics_file = joinpath(run_dir, "metrics.json")
+    if isfile(metrics_file)
+        m = JSON.parsefile(metrics_file)
+        raw = get(get(m, "model", Dict()), "type", "NominalModel")
+        return backtest_model_type(raw)
+    end
+    return "ClusteringTwoStageODModel"
+end
+
 function _json_number(value)
     return isfinite(value) ? value : nothing
 end
@@ -25,6 +37,14 @@ end
 function _month_window(params::Dict)
     start_dt = DateTime("$(params["start_date"]) 00:00:00", "yyyy-mm-dd HH:MM:SS")
     end_dt = DateTime("$(params["end_date"]) 23:59:59", "yyyy-mm-dd HH:MM:SS")
+    return start_dt, end_dt
+end
+
+function _backtest_month_window(params::Dict)
+    start_str = get(params, "backtest_start_date", params["start_date"])
+    end_str   = get(params, "backtest_end_date",   params["end_date"])
+    start_dt = DateTime("$(start_str) 00:00:00", "yyyy-mm-dd HH:MM:SS")
+    end_dt   = DateTime("$(end_str) 23:59:59",   "yyyy-mm-dd HH:MM:SS")
     return start_dt, end_dt
 end
 
@@ -68,6 +88,165 @@ function build_active_station_schedule(selection_run_dir::String)::DataFrame
     end
 
     return DataFrame(rows)
+end
+
+function _build_period_station_map(schedule_df::DataFrame)::Vector{Tuple{Int, Vector{Int}}}
+    seen = Dict{Int, Vector{Int}}()
+    for row in eachrow(schedule_df)
+        h = Int(row.period_start_hour)
+        haskey(seen, h) && continue
+        seen[h] = parse_station_list(string(row.active_station_ids))
+    end
+    return sort([(h, ids) for (h, ids) in seen]; by=first)
+end
+
+function _period_start_hour(h::Int, period_map::Vector{Tuple{Int, Vector{Int}}})::Union{Int, Nothing}
+    result = nothing
+    for (ph, _) in period_map
+        ph > h && break
+        result = ph
+    end
+    return result
+end
+
+# Key: (origin_id, dest_id, period_start_hour)
+# Value: (walk_j, walk_k, route) for the global min-cost (j,k) pair from that period's active stations.
+# Only entries where a finite-cost pair exists are stored; missing key = no valid pair.
+const _CostEntry = Tuple{Float64, Float64, Float64}
+
+function _build_period_cost_lookup(
+    period_map    :: Vector{Tuple{Int, Vector{Int}}},
+    walking_costs :: Dict{Tuple{Int,Int}, Float64},
+    routing_costs :: Dict{Tuple{Int,Int}, Float64},
+    station_ids   :: Vector{Int},
+    lambda_val    :: Float64,
+)::Dict{Tuple{Int,Int,Int}, _CostEntry}
+    lookup = Dict{Tuple{Int,Int,Int}, _CostEntry}()
+
+    for (ph, active_ids) in period_map
+        isempty(active_ids) && continue
+        for o in station_ids
+            for d in station_ids
+                o == d && continue
+                best_cost = Inf
+                best_wj   = NaN
+                best_wk   = NaN
+                best_r    = NaN
+
+                for j in active_ids
+                    w_j = get(walking_costs, (o, j), Inf)
+                    isfinite(w_j) || continue
+                    for k in active_ids
+                        w_k = get(walking_costs, (k, d), Inf)
+                        isfinite(w_k) || continue
+                        r = j == k ? 0.0 : get(routing_costs, (j, k), Inf)
+                        isfinite(r) || continue
+                        c = (w_j + w_k) + lambda_val * r
+                        if c < best_cost
+                            best_cost = c
+                            best_wj   = w_j
+                            best_wk   = w_k
+                            best_r    = r
+                        end
+                    end
+                end
+
+                isfinite(best_cost) || continue
+                lookup[(o, d, ph)] = (best_wj, best_wk, best_r)
+            end
+        end
+    end
+
+    return lookup
+end
+
+"""
+    compute_period_aware_direct_cost(orders_df, active_schedule_file, stations_file, segment_file,
+                                     lambda_val; max_walking_distance)
+
+For each order, determine its time-of-day period, retrieve z[j,s] active stations for that period,
+and find the minimum-cost (j,k) assignment: walk(o→j) + walk(k→d) + λ·route(j→k).
+
+Costs are computed via a prebuilt lookup table keyed on (origin_id, dest_id, period_start_hour),
+so the inner j×k search runs once per unique (o,d,period) triple rather than once per order.
+Walking violations are flagged post-hoc: if the globally optimal (j,k) has either leg exceeding
+max_walking_distance, the order is counted as a violation but its cost is still included.
+
+`orders_df` must have columns: `origin_station_id`, `destination_station_id`, `order_time`.
+"""
+function compute_period_aware_direct_cost(
+    orders_df::DataFrame,
+    active_schedule_file::String,
+    stations_file::String,
+    segment_file::String,
+    lambda_val::Float64;
+    max_walking_distance::Float64 = Inf,
+)
+    schedule_df = CSV.read(active_schedule_file, DataFrame)
+    period_map  = _build_period_station_map(schedule_df)
+
+    stations      = read_candidate_stations(stations_file)
+    walking_costs = compute_station_pairwise_costs(stations)
+    routing_costs = read_routing_costs_from_segments(segment_file, stations)
+
+    # Precompute best (j,k) cost for every (origin, dest, period) combination once.
+    cost_lookup = _build_period_cost_lookup(
+        period_map, walking_costs, routing_costs, stations.id, lambda_val
+    )
+
+    total_walk           = 0.0
+    total_route          = 0.0
+    fully_assigned       = 0
+    n_outside_period     = 0
+    n_missing_station_id = 0
+    n_walking_violations = 0
+    n_no_routing         = 0
+
+    for row in eachrow(orders_df)
+        origin_id = Int(row.origin_station_id)
+        dest_id   = Int(row.destination_station_id)
+        if origin_id == 0 || dest_id == 0
+            n_missing_station_id += 1
+            continue
+        end
+
+        ph = _period_start_hour(hour(DateTime(string(row.order_time), "yyyy-mm-dd HH:MM:SS")), period_map)
+        if isnothing(ph)
+            n_outside_period += 1
+            continue
+        end
+
+        entry = get(cost_lookup, (origin_id, dest_id, ph), nothing)
+        if isnothing(entry)
+            n_no_routing += 1
+            continue
+        end
+
+        w_j, w_k, r = entry
+        if w_j > max_walking_distance || w_k > max_walking_distance
+            n_walking_violations += 1
+        end
+
+        total_walk  += w_j + w_k
+        total_route += r
+        fully_assigned += 1
+    end
+
+    weighted_total = total_walk + lambda_val * total_route
+    return Dict{String, Any}(
+        "total_orders"                 => nrow(orders_df),
+        "fully_assigned_orders"        => fully_assigned,
+        "orders_outside_period"        => n_outside_period,
+        "orders_missing_station_id"    => n_missing_station_id,
+        "orders_walking_violation"     => n_walking_violations,
+        "orders_no_routing"            => n_no_routing,
+        "max_walking_distance_seconds" => max_walking_distance,
+        "walking_time_seconds"         => total_walk,
+        "routing_time_seconds"         => total_route,
+        "in_vehicle_time_weight"       => lambda_val,
+        "weighted_total_cost"          => weighted_total,
+        "mean_weighted_cost_per_order" => fully_assigned > 0 ? weighted_total / fully_assigned : 0.0,
+    )
 end
 
 function compute_direct_backtest_metrics(
@@ -141,19 +320,39 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
     station_selection_file = joinpath(run_dir, "variable_exports", "station_selection.csv")
 
     backtest_method = backtest_model_type(model_type)
-    start_dt, end_dt = _month_window(params)
+    start_dt, end_dt = _backtest_month_window(params)
     scenario_profile = _scenario_profile_symbol(params)
+
+    # Build a cluster file that has geometry (:id, :lon, :lat) + :selected flag.
+    # station_selection.csv only has array_idx/station_id/selected/value; transform_orders
+    # needs :id, :lat, :lon (WGS-84) which read_candidate_stations provides.
+    cluster_stations_file = joinpath(backtest_dir, "cluster_stations.csv")
+    let base_stations = read_candidate_stations(base_station_file),
+        sel_df        = CSV.read(station_selection_file, DataFrame)
+        cluster_df = leftjoin(
+            base_stations,
+            select(sel_df, :station_id => :id, :selected),
+            on = :id,
+        )
+        cluster_df.selected = coalesce.(cluster_df.selected, 0)
+        CSV.write(cluster_stations_file, cluster_df)
+    end
 
     transformed_df, transform_stats, daily_orders_manifest = transform_orders_for_month_backtest(
         base_order_file,
         run_dir,
-        station_selection_file,
+        cluster_stations_file,
         backtest_method;
         output_dir=transform_dir,
         start_date=start_dt,
         end_date=end_dt,
         scenario_profile=scenario_profile,
     )
+
+    # Build active station schedule first — needed for period-aware direct cost computation
+    schedule_df = build_active_station_schedule(run_dir)
+    active_schedule_file = joinpath(backtest_dir, "active_station_schedule.csv")
+    CSV.write(active_schedule_file, schedule_df)
 
     station_df = prepare_station_data(base_station_file, station_selection_file)
     station_file = joinpath(sim_input_dir, "station.csv")
@@ -167,10 +366,6 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
     vehicle_df = prepare_vehicle_data(base_vehicle_file, selected_station_ids)
     vehicle_file = joinpath(sim_input_dir, "vehicle.csv")
     CSV.write(vehicle_file, vehicle_df)
-
-    schedule_df = build_active_station_schedule(run_dir)
-    active_schedule_file = joinpath(backtest_dir, "active_station_schedule.csv")
-    CSV.write(active_schedule_file, schedule_df)
 
     sim_settings = _simulation_settings(cfg)
     manifest_rows = NamedTuple[]
@@ -201,17 +396,54 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
     manifest_file = joinpath(backtest_dir, "simulation_manifest.csv")
     CSV.write(manifest_file, manifest_df)
 
-    direct_metrics = compute_direct_backtest_metrics(
+    lambda_val            = Float64(get(params, "in_vehicle_time_weight", 1.0))
+    max_walking_distance  = Float64(get(params, "max_walking_distance", Inf))
+
+    # Out-of-sample direct backtest (May): use period-appropriate z[j,s] active stations
+    direct_metrics = compute_period_aware_direct_cost(
         transformed_df,
+        active_schedule_file,
         base_station_file,
         base_segment_file,
-        Float64(get(params, "in_vehicle_time_weight", 1.0)),
+        lambda_val;
+        max_walking_distance = max_walking_distance,
     )
     direct_metrics["transform"] = transform_stats
     direct_metrics["active_station_schedule_file"] = active_schedule_file
     direct_metrics_file = joinpath(backtest_dir, "direct_backtest_metrics.json")
     open(direct_metrics_file, "w") do io
         JSON.print(io, direct_metrics, 2)
+    end
+
+    # In-sample direct cost (April) — apply the same station layout to optimization-month orders
+    in_sample_transform_dir = joinpath(backtest_dir, "transform_in_sample")
+    mkpath(in_sample_transform_dir)
+    in_sample_start_dt, in_sample_end_dt = _month_window(params)
+
+    in_sample_transformed_df, in_sample_transform_stats, _ = transform_orders_for_month_backtest(
+        base_order_file,
+        run_dir,
+        cluster_stations_file,
+        backtest_method;
+        output_dir=in_sample_transform_dir,
+        start_date=in_sample_start_dt,
+        end_date=in_sample_end_dt,
+        scenario_profile=scenario_profile,
+    )
+
+    # In-sample direct cost (April): use period-appropriate z[j,s] active stations
+    in_sample_direct_metrics = compute_period_aware_direct_cost(
+        in_sample_transformed_df,
+        active_schedule_file,
+        base_station_file,
+        base_segment_file,
+        lambda_val;
+        max_walking_distance = max_walking_distance,
+    )
+    in_sample_direct_metrics["transform"] = in_sample_transform_stats
+    in_sample_direct_metrics_file = joinpath(backtest_dir, "in_sample_direct_metrics.json")
+    open(in_sample_direct_metrics_file, "w") do io
+        JSON.print(io, in_sample_direct_metrics, 2)
     end
 
     return Dict{String, Any}(
@@ -223,6 +455,7 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
         "daily_manifest_file" => transform_stats["daily_manifest_file"],
         "simulation_manifest_file" => manifest_file,
         "direct_metrics_file" => direct_metrics_file,
+        "in_sample_direct_metrics_file" => in_sample_direct_metrics_file,
         "active_station_schedule_file" => active_schedule_file,
         "n_days" => nrow(manifest_df),
     )

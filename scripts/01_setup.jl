@@ -65,7 +65,27 @@ function set_nested_value!(cfg::Dict, key::String, value)
     cursor[parts[end]] = value
 end
 
-param_combos = generate_combinations(sweep)
+# Separate model-specific sweep params from common ones.
+# model_sweep maps model type string → Dict of model-specific sweep arrays.
+model_sweep = pop!(sweep, "model_sweep", Dict{String, Any}())
+
+# Generate combinations of common params (Cartesian product)
+base_combos = generate_combinations(sweep)
+
+# For each base combo, expand with any model-specific params
+param_combos = Dict{String, Any}[]
+for base in base_combos
+    model_type = get(base, "model.type", get(get(base, "model", Dict()), "type", ""))
+    model_specific = get(model_sweep, model_type, Dict{String, Any}())
+    if isempty(model_specific)
+        push!(param_combos, base)
+    else
+        for ms in generate_combinations(model_specific)
+            push!(param_combos, merge(base, ms))
+        end
+    end
+end
+
 println("Generated $(length(param_combos)) parameter combinations")
 println()
 
@@ -109,6 +129,7 @@ metadata = Dict(
     "created"           => string(now()),
     "total_jobs"        => length(jobs),
     "sweep_parameters"  => collect(keys(sweep)),
+    "model_sweep_models" => collect(keys(model_sweep)),
     "base_config"       => base_path,
     "sweep_config"      => sweep_path,
     "julia_version"     => string(VERSION),
@@ -122,9 +143,19 @@ println()
 println("="^80)
 println("Summary: $(length(jobs)) jobs")
 println()
-println("Sweep parameters:")
+println("Common sweep parameters:")
 for (p, vals) in sweep
     println("  $p: $vals  ($(length(vals)) values)")
+end
+if !isempty(model_sweep)
+    println()
+    println("Model-specific sweep parameters:")
+    for (model_type, ms_params) in model_sweep
+        println("  [$model_type]")
+        for (p, vals) in ms_params
+            println("    $p: $vals  ($(length(vals)) values)")
+        end
+    end
 end
 println()
 println("Next steps:")

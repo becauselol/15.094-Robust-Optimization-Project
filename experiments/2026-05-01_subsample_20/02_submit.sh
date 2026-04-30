@@ -1,21 +1,21 @@
 #!/bin/bash
-#SBATCH -J nominal_vs_robust
+#SBATCH -J subsample_20
 #SBATCH -p mit_normal
 #SBATCH -N 1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --array=1-648
+#SBATCH --mem=32G
+#SBATCH --array=1-240
 #SBATCH --time=00:30:00
-#SBATCH -o experiments/2026-05-01_nominal_vs_robust/slurm_logs/job-%A_%a.out
-#SBATCH -e experiments/2026-05-01_nominal_vs_robust/slurm_logs/job-%A_%a.err
+#SBATCH -o experiments/2026-05-01_subsample_20/slurm_logs/job-%A_%a.out
+#SBATCH -e experiments/2026-05-01_subsample_20/slurm_logs/job-%A_%a.err
 
-EXPERIMENT="experiments/2026-05-01_nominal_vs_robust"
+EXPERIMENT="experiments/2026-05-01_subsample_20"
 
 PROJECT_ROOT="$SLURM_SUBMIT_DIR"
 EXP_DIR="$PROJECT_ROOT/$EXPERIMENT"
 
-echo "===== Budget-Robust Station Selection Sweep ====="
+echo "===== Subsample-20 Station Selection Sweep ====="
 echo "Experiment:   $EXP_DIR"
 echo "Array job ID: $SLURM_ARRAY_JOB_ID"
 echo "Task ID:      $SLURM_ARRAY_TASK_ID"
