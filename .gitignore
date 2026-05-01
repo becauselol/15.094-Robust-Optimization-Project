@@ -36,3 +36,4 @@ Data/
 **/slurm_logs/
 **/runs_binary_x/
 config/
+*.csv
