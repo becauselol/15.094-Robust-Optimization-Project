@@ -110,8 +110,9 @@ function _period_start_hour(h::Int, period_map::Vector{Tuple{Int, Vector{Int}}})
 end
 
 # Key: (origin_id, dest_id, period_start_hour)
-# Value: (walk_j, walk_k, route) for the global min-cost (j,k) pair from that period's active stations.
-# Only entries where a finite-cost pair exists are stored; missing key = no valid pair.
+# Value: (walk_j, walk_k, route) for the minimum-cost walking-feasible `(j,k)` pair
+# from that period's active stations. Only entries where a finite feasible pair
+# exists are stored; missing key = no valid pair.
 const _CostEntry = Tuple{Float64, Float64, Float64}
 
 function _build_period_cost_lookup(
@@ -120,6 +121,7 @@ function _build_period_cost_lookup(
     routing_costs :: Dict{Tuple{Int,Int}, Float64},
     station_ids   :: Vector{Int},
     lambda_val    :: Float64,
+    max_walking_distance :: Float64,
 )::Dict{Tuple{Int,Int,Int}, _CostEntry}
     lookup = Dict{Tuple{Int,Int,Int}, _CostEntry}()
 
@@ -136,9 +138,11 @@ function _build_period_cost_lookup(
                 for j in active_ids
                     w_j = get(walking_costs, (o, j), Inf)
                     isfinite(w_j) || continue
+                    w_j <= max_walking_distance || continue
                     for k in active_ids
                         w_k = get(walking_costs, (k, d), Inf)
                         isfinite(w_k) || continue
+                        w_k <= max_walking_distance || continue
                         r = j == k ? 0.0 : get(routing_costs, (j, k), Inf)
                         isfinite(r) || continue
                         c = (w_j + w_k) + lambda_val * r
@@ -164,13 +168,14 @@ end
     compute_period_aware_direct_cost(orders_df, active_schedule_file, stations_file, segment_file,
                                      lambda_val; max_walking_distance)
 
-For each order, determine its time-of-day period, retrieve z[j,s] active stations for that period,
-and find the minimum-cost (j,k) assignment: walk(o→j) + walk(k→d) + λ·route(j→k).
+For each order, determine its time-of-day period, retrieve z[j,s] active stations for
+that period, and find the minimum-cost walking-feasible `(j,k)` assignment:
+walk(o→j) + walk(k→d) + λ·route(j→k).
 
 Costs are computed via a prebuilt lookup table keyed on (origin_id, dest_id, period_start_hour),
 so the inner j×k search runs once per unique (o,d,period) triple rather than once per order.
-Walking violations are flagged post-hoc: if the globally optimal (j,k) has either leg exceeding
-max_walking_distance, the order is counted as a violation but its cost is still included.
+If no active pair satisfies both walking limits, the order is counted as a walking violation
+and excluded from the direct-cost totals.
 
 `orders_df` must have columns: `origin_station_id`, `destination_station_id`, `order_time`.
 """
@@ -191,7 +196,7 @@ function compute_period_aware_direct_cost(
 
     # Precompute best (j,k) cost for every (origin, dest, period) combination once.
     cost_lookup = _build_period_cost_lookup(
-        period_map, walking_costs, routing_costs, stations.id, lambda_val
+        period_map, walking_costs, routing_costs, stations.id, lambda_val, max_walking_distance
     )
 
     total_walk           = 0.0
@@ -218,14 +223,12 @@ function compute_period_aware_direct_cost(
 
         entry = get(cost_lookup, (origin_id, dest_id, ph), nothing)
         if isnothing(entry)
+            n_walking_violations += 1
             n_no_routing += 1
             continue
         end
 
         w_j, w_k, r = entry
-        if w_j > max_walking_distance || w_k > max_walking_distance
-            n_walking_violations += 1
-        end
 
         total_walk  += w_j + w_k
         total_route += r
@@ -338,6 +341,9 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
         CSV.write(cluster_stations_file, cluster_df)
     end
 
+    lambda_val            = Float64(get(params, "in_vehicle_time_weight", 1.0))
+    max_walking_distance  = Float64(get(params, "max_walking_distance", Inf))
+
     transformed_df, transform_stats, daily_orders_manifest = transform_orders_for_month_backtest(
         base_order_file,
         run_dir,
@@ -347,6 +353,9 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
         start_date=start_dt,
         end_date=end_dt,
         scenario_profile=scenario_profile,
+        segment_file=base_segment_file,
+        max_walking_distance=max_walking_distance,
+        in_vehicle_time_weight=lambda_val,
     )
 
     # Build active station schedule first — needed for period-aware direct cost computation
@@ -396,9 +405,6 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
     manifest_file = joinpath(backtest_dir, "simulation_manifest.csv")
     CSV.write(manifest_file, manifest_df)
 
-    lambda_val            = Float64(get(params, "in_vehicle_time_weight", 1.0))
-    max_walking_distance  = Float64(get(params, "max_walking_distance", Inf))
-
     # Out-of-sample direct backtest (May): use period-appropriate z[j,s] active stations
     direct_metrics = compute_period_aware_direct_cost(
         transformed_df,
@@ -429,6 +435,9 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
         start_date=in_sample_start_dt,
         end_date=in_sample_end_dt,
         scenario_profile=scenario_profile,
+        segment_file=base_segment_file,
+        max_walking_distance=max_walking_distance,
+        in_vehicle_time_weight=lambda_val,
     )
 
     # In-sample direct cost (April): use period-appropriate z[j,s] active stations
