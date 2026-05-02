@@ -1,0 +1,16 @@
+{
+  "base_config": "/home/yongzr/15.094-Robust-Optimization-Project/experiments/2026-05-02_full_subsample_40_3_days/base.toml",
+  "created": "2026-05-02T17:15:40.313",
+  "julia_version": "1.12.6",
+  "model_sweep_models": [
+    "RobustTotalDemandCapModel"
+  ],
+  "sweep_config": "/home/yongzr/15.094-Robust-Optimization-Project/experiments/2026-05-02_full_subsample_40_3_days/sweep.toml",
+  "sweep_parameters": [
+    "k",
+    "in_vehicle_time_weight",
+    "model.type",
+    "max_walking_distance"
+  ],
+  "total_jobs": 12
+}

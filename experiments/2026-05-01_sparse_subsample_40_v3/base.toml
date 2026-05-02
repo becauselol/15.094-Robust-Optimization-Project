@@ -1,0 +1,39 @@
+# Base configuration for 40-station subsampled experiment.
+# Data filtered to top-40 stations by order frequency (both endpoints must be in set).
+
+name = "sparse_subsample_40"
+
+[data]
+station_file       = "Data/zhuzhou_data_40_sparse_v3/station.csv"
+order_file         = "Data/zhuzhou_data_40_sparse_v3/order.csv"
+segment_file       = "Data/zhuzhou_data_40_sparse_v3/segment.csv"
+vehicle_file       = "Data/zhuzhou_data_40_sparse_v3/vehicle.csv"
+
+[model]
+type = "NominalModel"
+
+[parameters]
+scenario_profile = "four_period"
+start_date       = "2025-04-01"
+end_date         = "2025-04-03"
+backtest_start_date = "2025-05-01"
+backtest_end_date   = "2025-05-31"
+
+l = 30
+
+[simulation]
+enabled = false
+base_date = 2025-04-01
+optimization_interval = 300.0
+max_wait_time = 900.0
+max_time = 86400.0
+assignment_mode = "batch"
+run_until_complete = true
+verbose = false
+batch_write_logs = false
+batch_write_size = 1000
+
+[solver]
+silent             = false
+time_limit_seconds = 3600
+mip_gap            = 0.001
