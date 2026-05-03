@@ -1,0 +1,24 @@
+{
+  "input_orders": 84217,
+  "output_orders": 42032,
+  "retention_rate": 0.4990916323307646,
+  "base_keep_prob": 0.5,
+  "station_bias_gamma": 0.0,
+  "min_station_keep": 1.0,
+  "od_drop_frac": 0.0,
+  "bucket_drop_frac": 0.0,
+  "bucket_mode": "date_period4",
+  "drop_reasons": {
+    "thinning_drop": 42185
+  },
+  "dropped_od_pairs": [],
+  "dropped_buckets": [],
+  "station_keep_prob_summary": {
+    "min": 1.0,
+    "median_like": 1.0,
+    "max": 1.0
+  },
+  "input_dir": "../Data/zhuzhou_data_40",
+  "output_dir": "generated/zhuzhou_data_40_half_orders",
+  "seed": 42
+}

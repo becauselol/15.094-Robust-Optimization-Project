@@ -1,0 +1,517 @@
+{
+  "source_dataset": "zhuzhou_data",
+  "construction": "greedy closest-pair perfect matching over all 84 stations",
+  "merged_station_count": 42,
+  "original_station_count": 84,
+  "original_order_count": 89680,
+  "merged_order_count": 89680,
+  "self_merged_orders": 104,
+  "original_segment_count": 6972,
+  "merged_segment_count": 1722,
+  "pairs": [
+    {
+      "merged_station_id": 1,
+      "member_station_ids": [
+        14,
+        149
+      ],
+      "member_station_names": [
+        "\u817e\u9f99\u5927\u9152\u5e97",
+        "\u521b\u4e1a\u5927\u53a6"
+      ],
+      "pair_distance_m": 13.959835253674926
+    },
+    {
+      "merged_station_id": 2,
+      "member_station_ids": [
+        92,
+        122
+      ],
+      "member_station_names": [
+        "\u660e\u793c\u8def\u5317\u53e3A",
+        "\u660e\u793c\u8def\u5317\u53e3B"
+      ],
+      "pair_distance_m": 16.32873188201323
+    },
+    {
+      "merged_station_id": 3,
+      "member_station_ids": [
+        48,
+        176
+      ],
+      "member_station_names": [
+        "\u6c7d\u8f66\u804c\u5927-\u4fa7\u95e8",
+        "\u6c7d\u8f66\u804c\u5927-\u4fa7\u95e8A"
+      ],
+      "pair_distance_m": 23.512237885433716
+    },
+    {
+      "merged_station_id": 4,
+      "member_station_ids": [
+        86,
+        126
+      ],
+      "member_station_names": [
+        "\u5b66\u5e9c\u6e2f\u6e7e-\u6b63\u95e8",
+        "\u85cf\u9f99\u6e7e-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 33.12051378791356
+    },
+    {
+      "merged_station_id": 5,
+      "member_station_ids": [
+        103,
+        104
+      ],
+      "member_station_names": [
+        "\u867e\u5858B",
+        "\u867e\u5858A"
+      ],
+      "pair_distance_m": 53.781184230567156
+    },
+    {
+      "merged_station_id": 6,
+      "member_station_ids": [
+        197,
+        198
+      ],
+      "member_station_names": [
+        "\u4e5d\u91cc\u4e91\u73d1",
+        "\u4e91\u9f99\u91d1\u8857"
+      ],
+      "pair_distance_m": 55.59923510190978
+    },
+    {
+      "merged_station_id": 7,
+      "member_station_ids": [
+        202,
+        203
+      ],
+      "member_station_names": [
+        "\u4e07\u8fbe\u5e7f\u573a\u6b63\u95e8",
+        "\u6842\u82b1\u7ad9"
+      ],
+      "pair_distance_m": 61.540892528907456
+    },
+    {
+      "merged_station_id": 8,
+      "member_station_ids": [
+        110,
+        133
+      ],
+      "member_station_names": [
+        "\u667a\u6167\u8def\u4e2d",
+        "\u6c7d\u8f66\u804c\u5927\u897f\u6821\u533a-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 65.13596211247936
+    },
+    {
+      "merged_station_id": 9,
+      "member_station_ids": [
+        94,
+        128
+      ],
+      "member_station_names": [
+        "\u76d8\u9f99\u8def\u667a\u6167\u8def\u53e3",
+        "\u5546\u9662-\u4fa7\u95e8"
+      ],
+      "pair_distance_m": 67.90104695399381
+    },
+    {
+      "merged_station_id": 10,
+      "member_station_ids": [
+        40,
+        113
+      ],
+      "member_station_names": [
+        "\u5e08\u4e13- \u6b63\u95e8",
+        "\u667a\u6167\u8def\u5347\u9f99\u8def\u53e3"
+      ],
+      "pair_distance_m": 68.50872692518784
+    },
+    {
+      "merged_station_id": 11,
+      "member_station_ids": [
+        100,
+        101
+      ],
+      "member_station_names": [
+        "\u6709\u8272\u804c\u9662-\u6b63\u95e8",
+        "\u5546\u9662-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 71.03747476504067
+    },
+    {
+      "merged_station_id": 12,
+      "member_station_ids": [
+        19,
+        206
+      ],
+      "member_station_names": [
+        "\u9999\u6a1f\u793e\u533a\u4e2d\u5fc3",
+        "\u78a7\u6842\u56ed\u4e1c\u5357\u95e8"
+      ],
+      "pair_distance_m": 86.84329615118072
+    },
+    {
+      "merged_station_id": 13,
+      "member_station_ids": [
+        205,
+        210
+      ],
+      "member_station_names": [
+        "\u5b66\u6797\u793e\u533a\u4e2d\u5fc3",
+        "\u9a6c\u978d\u5858B"
+      ],
+      "pair_distance_m": 89.653873044471
+    },
+    {
+      "merged_station_id": 14,
+      "member_station_ids": [
+        44,
+        192
+      ],
+      "member_station_names": [
+        "\u5e08\u4e13-\u4fa7\u95e8",
+        "\u817e\u8fbe\u9a7e\u6821-\u4fa7\u95e8"
+      ],
+      "pair_distance_m": 108.48554305061903
+    },
+    {
+      "merged_station_id": 15,
+      "member_station_ids": [
+        106,
+        107
+      ],
+      "member_station_names": [
+        "\u6728\u5bb6\u51b2A",
+        "\u6728\u5bb6\u51b2B"
+      ],
+      "pair_distance_m": 113.80962194118226
+    },
+    {
+      "merged_station_id": 16,
+      "member_station_ids": [
+        135,
+        138
+      ],
+      "member_station_names": [
+        "\u822a\u7a7a\u5b66\u9662-\u4fa7\u95e8",
+        "\u667a\u8c37\u8d2d\u7269\u5e7f\u573a"
+      ],
+      "pair_distance_m": 116.88619299748481
+    },
+    {
+      "merged_station_id": 17,
+      "member_station_ids": [
+        119,
+        123
+      ],
+      "member_station_names": [
+        "\u68d5\u6811\u56ed",
+        "\u6587\u835f\u793e\u533a"
+      ],
+      "pair_distance_m": 117.14986737475354
+    },
+    {
+      "merged_station_id": 18,
+      "member_station_ids": [
+        36,
+        136
+      ],
+      "member_station_names": [
+        "\u6c7d\u8f66\u804c\u5927\u897f\u6821\u533a-\u540e\u95e8",
+        "\u817e\u8fbe\u9a7e\u6821-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 117.96374677355321
+    },
+    {
+      "merged_station_id": 19,
+      "member_station_ids": [
+        88,
+        90
+      ],
+      "member_station_names": [
+        "\u822a\u7a7a\u5b66\u9662-\u6b63\u95e8",
+        "\u94c1\u8def\u79d1\u6280\u804c\u9662\u6b63\u95e8"
+      ],
+      "pair_distance_m": 118.61832018268287
+    },
+    {
+      "merged_station_id": 20,
+      "member_station_ids": [
+        84,
+        142
+      ],
+      "member_station_names": [
+        "\u5b66\u5e9c\u6e2f\u6e7e-\u540e\u95e8",
+        "\u822a\u7a7a\u5b66\u9662-\u5317\u95e8"
+      ],
+      "pair_distance_m": 121.76293238794624
+    },
+    {
+      "merged_station_id": 21,
+      "member_station_ids": [
+        208,
+        209
+      ],
+      "member_station_names": [
+        "\u4ebf\u90fd\u6f9c\u5ead",
+        "\u9a6c\u5bb6\u5634\u7ad9"
+      ],
+      "pair_distance_m": 135.49881359143018
+    },
+    {
+      "merged_station_id": 22,
+      "member_station_ids": [
+        160,
+        168
+      ],
+      "member_station_names": [
+        "\u5f18\u667a\u8def\u660e\u793c\u8def\u53e3",
+        "\u5f18\u667a\u8def\u4e2d"
+      ],
+      "pair_distance_m": 142.12205043859154
+    },
+    {
+      "merged_station_id": 23,
+      "member_station_ids": [
+        22,
+        98
+      ],
+      "member_station_names": [
+        "\u5316\u5de5\u5b66\u9662-\u6b63\u95e8",
+        "\u667a\u6167\u8def\u5317"
+      ],
+      "pair_distance_m": 152.6797761624539
+    },
+    {
+      "merged_station_id": 24,
+      "member_station_ids": [
+        80,
+        190
+      ],
+      "member_station_names": [
+        "\u6253\u725b\u5858",
+        "\u667a\u6167\u8def\u8fce\u5bbe\u5927\u9053\u8def\u53e3"
+      ],
+      "pair_distance_m": 176.5200944548211
+    },
+    {
+      "merged_station_id": 25,
+      "member_station_ids": [
+        199,
+        200
+      ],
+      "member_station_names": [
+        "\u4e07\u8fbe\u4e09\u53f7\u95e8",
+        "\u6c47\u91d1\u65b0\u57ce"
+      ],
+      "pair_distance_m": 183.27660142959598
+    },
+    {
+      "merged_station_id": 26,
+      "member_station_ids": [
+        26,
+        152
+      ],
+      "member_station_names": [
+        "\u667a\u6167\u8def\u4e91\u9f99\u5927\u9053\u8def\u53e3",
+        "\u667a\u6167\u8def\u539a\u4fe1\u8def\u53e3\u7ad9"
+      ],
+      "pair_distance_m": 194.9720257534627
+    },
+    {
+      "merged_station_id": 27,
+      "member_station_ids": [
+        129,
+        154
+      ],
+      "member_station_names": [
+        "\u5b66\u5e9c\u534e\u5ead-\u897f\u5317\u95e8",
+        "\u5b66\u5e9c\u534e\u5ead-\u4e1c\u5317\u95e8"
+      ],
+      "pair_distance_m": 205.78486109591046
+    },
+    {
+      "merged_station_id": 28,
+      "member_station_ids": [
+        31,
+        34
+      ],
+      "member_station_names": [
+        "\u7701\u76f4\u4e2d\u533b\u9662\u4e91\u9f99\u9662\u533a",
+        "\u5d07\u5fb7\u8def\u4e0e\u5f18\u667a\u8def\u53e3"
+      ],
+      "pair_distance_m": 221.58155098958852
+    },
+    {
+      "merged_station_id": 29,
+      "member_station_ids": [
+        204,
+        211
+      ],
+      "member_station_names": [
+        "\u9a6c\u978d\u5858\u7ad9",
+        "\u6842\u82b1B\u7ad9"
+      ],
+      "pair_distance_m": 229.30651157483723
+    },
+    {
+      "merged_station_id": 30,
+      "member_station_ids": [
+        16,
+        183
+      ],
+      "member_station_names": [
+        "\u7ea2\u53f6KTV",
+        "\u76d8\u9f99\u8def\u4e2d"
+      ],
+      "pair_distance_m": 232.87237246174718
+    },
+    {
+      "merged_station_id": 31,
+      "member_station_ids": [
+        115,
+        117
+      ],
+      "member_station_names": [
+        "\u6c7d\u8f66\u804c\u9662\u5317",
+        "\u6c7d\u8f66\u804c\u5927-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 242.75967588162618
+    },
+    {
+      "merged_station_id": 32,
+      "member_station_ids": [
+        18,
+        95
+      ],
+      "member_station_names": [
+        "\u804c\u6559\u57ce",
+        "\u804c\u6559\u57ce-\u6709\u8272\u6b63\u95e8"
+      ],
+      "pair_distance_m": 246.96805645133165
+    },
+    {
+      "merged_station_id": 33,
+      "member_station_ids": [
+        82,
+        147
+      ],
+      "member_station_names": [
+        "\u8fce\u5bbe\u5927\u9053\u7530\u6797\u8def\u53e3",
+        "\u5174\u9686\u96c6\u5e02"
+      ],
+      "pair_distance_m": 257.1251901436166
+    },
+    {
+      "merged_station_id": 34,
+      "member_station_ids": [
+        11,
+        13
+      ],
+      "member_station_names": [
+        "\u94c1\u8def\u79d1\u6280\u804c\u9662-\u4fa7\u95e8",
+        "\u5317\u73af\u5927\u9053\u8fce\u5bbe\u5927\u9053\u8def\u53e3"
+      ],
+      "pair_distance_m": 262.3453356860182
+    },
+    {
+      "merged_station_id": 35,
+      "member_station_ids": [
+        38,
+        108
+      ],
+      "member_station_names": [
+        "\u5317\u73af\u5927\u9053\u8f85\u9053\u4e91\u9f99\u5927\u9053",
+        "\u6728\u5bb6\u51b2-\u5b66\u5e9c\u534e\u5ead"
+      ],
+      "pair_distance_m": 300.6335634848385
+    },
+    {
+      "merged_station_id": 36,
+      "member_station_ids": [
+        9,
+        139
+      ],
+      "member_station_names": [
+        "\u5b66\u5e9c\u6e2f\u6e7e-\u4fa7\u95e8",
+        "\u57ce\u7ba1\u804c\u6559\u57ce\u4e2d\u961f"
+      ],
+      "pair_distance_m": 381.3193768206157
+    },
+    {
+      "merged_station_id": 37,
+      "member_station_ids": [
+        165,
+        207
+      ],
+      "member_station_names": [
+        "\u6709\u8272\u804c\u9662-\u540e\u95e8",
+        "\u78a7\u6842\u56ed\u6b63\u95e8"
+      ],
+      "pair_distance_m": 390.6561555115314
+    },
+    {
+      "merged_station_id": 38,
+      "member_station_ids": [
+        156,
+        158
+      ],
+      "member_station_names": [
+        "\u5347\u9f99\u5927\u9053",
+        "\u4e2d\u533b\u836f-\u6b63\u95e8"
+      ],
+      "pair_distance_m": 414.7417742628058
+    },
+    {
+      "merged_station_id": 39,
+      "member_station_ids": [
+        52,
+        54
+      ],
+      "member_station_names": [
+        "\u4e2d\u592e\u7cae\u98df\u50a8\u5907\u5c40",
+        "\u6c7d\u8f66\u804c\u5927-\u540e\u95e8"
+      ],
+      "pair_distance_m": 498.03506511662806
+    },
+    {
+      "merged_station_id": 40,
+      "member_station_ids": [
+        196,
+        201
+      ],
+      "member_station_names": [
+        "\u5927\u4e30\u7ad9",
+        "\u6c47\u91d1\u65b0\u57ce\u540e\u95e8"
+      ],
+      "pair_distance_m": 715.2442176217993
+    },
+    {
+      "merged_station_id": 41,
+      "member_station_ids": [
+        162,
+        175
+      ],
+      "member_station_names": [
+        "\u5f18\u667a\u8def",
+        "\u5d07\u5fb7\u8def\u8377\u82b1\u8def\u53e3"
+      ],
+      "pair_distance_m": 1010.3167508145858
+    },
+    {
+      "merged_station_id": 42,
+      "member_station_ids": [
+        21,
+        121
+      ],
+      "member_station_names": [
+        "\u5316\u5de5\u5b66\u9662-\u540e\u95e8",
+        "\u94c1\u9053\u6b63\u95e8"
+      ],
+      "pair_distance_m": 1765.57027916813
+    }
+  ]
+}

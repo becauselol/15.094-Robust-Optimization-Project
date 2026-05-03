@@ -1,0 +1,32 @@
+# Sweep parameters for nominal vs smoothed nominal vs robust experiment.
+# 01_setup.jl takes the Cartesian product of all top-level arrays, then multiplies
+# each combination by the model-specific params in [model_sweep.<ModelType>].
+
+# Three model variants
+"model.type" = ["NominalModel", "SmoothedNominalModel", "RobustTotalDemandCapModel"]
+
+# Active stations per scenario
+k = [25, 30, 35, 40]
+
+# In-vehicle time weight λ (converts routing time to same unit as walking distance)
+in_vehicle_time_weight = [0.0, 0.1, 1.0, 10.0, 100.0, 1000.0]
+
+# Walking distance limit (seconds of walking time)
+max_walking_distance = [300.0, 600.0]
+
+# Model-specific sweep parameters — expanded only for the matching model type.
+# NominalModel has no model-specific params so it gets 1 × the base combinations.
+[model_sweep.SmoothedNominalModel]
+smoothing_tau = [5.0]
+pseudo_demand_fraction = [0.02]
+gravity_uniform_mix = [0.05]
+
+[model_sweep.RobustTotalDemandCapModel]
+# Shared calibration percentile for both q̄_ods and B_s
+demand_quantile = [0.90, 0.95, 0.99]
+
+# Total jobs:
+#   NominalModel:              4 × 6 × 2 = 48
+#   SmoothedNominalModel:      4 × 6 × 2 × 1 = 48
+#   RobustTotalDemandCapModel: 4 × 6 × 2 × 3 = 144
+#   Total = 240

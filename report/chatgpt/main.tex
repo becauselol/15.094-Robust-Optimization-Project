@@ -1,0 +1,1243 @@
+\documentclass[11pt]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\graphicspath{{../experiments/demand_understanding/}}
+
+% ── Notation shorthands ───────────────────────────────────────────────────────
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\cS}{\mathcal{S}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\title{%
+  Budget-Robust Station Selection for Microtransit\\
+  Under Demand Uncertainty%
+}
+\author{Yong-Zher Rui}
+\date{Spring 2026 \quad 15.094 Robust Optimization}
+
+% ──────────────────────────────────────────────────────────────────────────────
+\begin{document}
+\maketitle
+
+\begin{abstract}
+	We extend a two-stage stochastic virtual bus stop (VBS) selection model to
+	handle uncertain passenger demand within each scenario type (morning,
+	afternoon, evening, night).  Demand for each origin--destination pair
+	$(o,d)$ and scenario type $s$ is modeled as lying in a capped-total-demand
+	uncertainty set parameterized by per-OD upper bounds together with a
+	per-scenario upper bound on aggregate demand; lower bounds are fixed at zero
+	by design.  We derive the dual robust counterpart of the inner maximization,
+	which remains linear and can be solved with the same MILP machinery as the
+	nominal model.  We compare the nominal base model with its robust
+	total-demand-cap counterpart on out-of-sample demand realizations and report
+	average cost, high-percentile (P90/P95) cost, and the price of robustness.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+\label{sec:intro}
+
+Microtransit systems offer flexible, on-demand shared rides between a set of
+designated virtual bus stops (VBS).  A key design decision is which candidate
+locations to build as VBS.  Prior work formulates this as a two-stage stochastic
+mixed-integer program: in the first stage, build $l$ stations and choose which
+$k \le l$ are active in each scenario $s \in S$; in the second stage, assign
+passengers to origin--destination VBS pairs.
+
+A limitation of the stochastic model is that it treats the demand $q_{ods}$
+within each scenario as a fixed, known quantity (typically the historical mean).
+In practice, demand fluctuates even within a scenario type: morning-peak demand
+on one day may differ substantially from the next.  This motivates a
+\emph{robust} extension where $q_{ods}$ is uncertain within a bounded set.
+
+The uncertainty model adopted here is designed to encode a direct operational
+statement: each OD pair has a plausible demand range, and the \emph{total}
+demand within a scenario type should not exceed a calibrated upper bound.  This
+produces a tractable robust counterpart for the base station-selection model.
+
+Accordingly, the report focuses on two formulations only:
+\begin{itemize}
+	\item the nominal base model, which optimizes against scenario-average demand;
+	\item the robust counterpart, which protects against worst-case demand
+	      realizations within a capped uncertainty set.
+\end{itemize}
+
+Under a nominal-demand optimization, the chosen station set may fit the average
+demand pattern well but perform poorly when demand shifts toward OD pairs that
+are less conveniently located relative to the selected stops.  The robust model
+reduces this sensitivity by favoring station configurations whose assignment
+performance remains more stable across plausible demand realizations.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Base Model}
+\label{sec:base}
+
+\subsection{Decision variables}
+
+\begin{align*}
+	y_j       & \in \{0,1\} &  & \text{build station } j                                \\
+	z_{js}    & \in \{0,1\} &  & \text{station } j \text{ is active in scenario } s     \\
+	x_{odjks} & \in \{0,1\} &  & \text{assign OD pair } (o,d) \text{ to origin VBS } j,
+	\text{ destination VBS } k \text{ in scenario } s
+\end{align*}
+
+Following the March 18 JacqWang formulation, walking distance induces
+admissibility sets.  Let $\Delta(o) \subseteq J$ be the candidate pickup
+stations within the walking limit of origin $o$, and let $\Delta(d) \subseteq
+	J$ be the candidate dropoff stations within the walking limit of destination
+$d$.  Define the admissible station-pair set
+\[
+	A_{od}
+	:=
+	\{(j,k) : j \in \Delta(o),\ k \in \Delta(d)\}.
+\]
+Only pairs in $A_{od}$ may be used to serve OD pair $(o,d)$.
+
+\subsection{Nominal objective}
+
+The nominal two-stage objective minimizes expected passenger travel cost:
+\begin{equation}
+	\min_{x,y,z}
+	\sum_{s \in S} \sum_{(o,d) \in \Omega} \sum_{(j,k)\in A_{od}}
+	q_{ods}\,
+	\underbrace{\bigl(d^{\mathrm{orig}}_{oj} + d^{\mathrm{dest}}_{dk} + \lambda\,c_{jk}\bigr)}_{a_{odjks}}\,
+	x_{odjks},
+	\label{eq:nominal-obj}
+\end{equation}
+where $d^{\mathrm{orig}}_{oj}$ is the walking distance from origin $o$ to VBS $j$,
+$d^{\mathrm{dest}}_{dk}$ is the walking distance from VBS $k$ to destination $d$,
+$c_{jk}$ is the in-vehicle travel time between VBS $j$ and $k$, and $\lambda$
+is a weight that converts routing time to the same unit as walking distance.
+
+\subsection{Constraints}
+
+\begin{align}
+	\sum_{(j,k)\in A_{od}} x_{odjks} & = 1                                    &  & \forall (o,d), s \label{eq:assign} \\
+	x_{odjks}                        & \le z_{js}, \quad x_{odjks} \le z_{ks} &  & \forall (o,d), (j,k)\in A_{od}, s
+	\label{eq:active}                                                                                                 \\
+	z_{js}                           & \le y_j                                &  & \forall j, s \label{eq:build}      \\
+	\sum_j y_j                       & = l, \quad \sum_j z_{js} = k           &  & \forall s \label{eq:budget}
+\end{align}
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Uncertainty Set for Demand}
+\label{sec:uncertainty}
+
+\subsection{Parameterization}
+
+For each OD pair $(o,d)$ and scenario type $s$, let $\overline{q}_{ods}$
+denote an upper bound on demand, and let $\overline{Q}_s$ denote an upper bound
+on \emph{total} demand in scenario type $s$.  Lower bounds are fixed at zero
+(see \S\ref{sec:empirical-uset} for justification).  The uncertainty set is
+\begin{equation}
+	\cU_s = \Bigl\{
+	q_s :
+	0 \le q_{ods} \le \overline{q}_{ods}\ \forall (o,d),\;
+	\sum_{(o,d)\in\Omega} q_{ods} \le \overline{Q}_s
+	\Bigr\}.
+	\label{eq:uset}
+\end{equation}
+
+This uncertainty set says two things simultaneously:
+\begin{itemize}
+	\item each OD pair must remain within its own historically calibrated range;
+	\item the aggregate demand in the scenario cannot exceed $\overline{Q}_s$.
+\end{itemize}
+
+\subsection{Interpretation of the total-demand cap}
+
+\begin{itemize}
+	\item If $\overline{Q}_s = 0$, then all OD demands are forced to zero (vacuous).
+	\item If $\overline{Q}_s \ge \sum_{(o,d)} \overline{q}_{ods}$, then the total
+	      demand cap is inactive and the model reduces to independent box bounds
+	      on each OD pair.
+	\item Intermediate values of $\overline{Q}_s$ allow some OD pairs to be high
+	      simultaneously, but only so long as total demand stays below the
+	      calibrated cap.
+\end{itemize}
+
+A larger $\overline{Q}_s$ for a high-demand period such as evening encodes the
+prior that those periods experience larger systemwide demand surges.
+
+\subsection{Remark on integer demand}
+
+Observed demand is integer-valued, but the robust inner maximization may still
+be solved as a linear program.  The key point is that the uncertainty set
+\eqref{eq:uset} is a bounded knapsack-type polytope.  If the bounds
+$\overline{q}_{ods}$ and $\overline{Q}_s$ are integral, the inner LP has an
+optimal extreme point that is integral as well.  Hence dropping integrality in
+the inner maximization does not change the worst-case value, even though the
+uncertainty set is written in continuous form.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Robust Counterpart}
+\label{sec:robust-cpt}
+
+\subsection{Robust objective}
+
+The robust model replaces the nominal objective with
+\begin{equation}
+	\min_{y,z}
+	\sum_{s \in S}
+	\max_{q_s \in \cU_s}
+	\Phi_s(z_s,q_s),
+	\label{eq:robust-obj}
+\end{equation}
+subject to the first-stage constraints \eqref{eq:build}--\eqref{eq:budget},
+where $\Phi_s(z_s, q_s)$ is the recourse value defined below.
+
+\subsection{Recourse value function}
+
+The key modeling point is that $x$ is a \emph{recourse} decision.  For fixed
+scenario-active stations $z_s$ and realized demand vector $q_s$, define the
+recourse value function
+\begin{equation}
+	\Phi_s(z_s,q_s)
+	:=
+	\min_{x}
+	\sum_{(o,d)\in\Omega}\sum_{(j,k)\in A_{od}}
+	q_{ods}\,a_{odjks}\,x_{odjks}
+	\label{eq:recourse-value}
+\end{equation}
+subject to
+\begin{align}
+	\sum_{(j,k)\in A_{od}} x_{odjks} & = 1                                   &                                                           & \forall (o,d), \label{eq:recourse-assign} \\
+	x_{odjks}                        & \le z_{js},\quad x_{odjks} \le z_{ks}
+	                                 &                                       & \forall (o,d),(j,k)\in A_{od}, \label{eq:recourse-active}
+\end{align}
+with $x_{odjks} \ge 0$.  Integrality is not needed here: for fixed $(o,d,s)$
+the feasible region is a simplex intersected with bound constraints, so an
+optimal extreme point selects a single active station pair.
+
+For fixed $z_s$, this problem decomposes by OD pair.  Define the induced
+minimum assignment cost
+\begin{equation}
+	m_{ods}(z_s)
+	:=
+	\min_{x_{od\cdot\cdot s}}
+	\left\{
+	\sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
+	:
+	\sum_{(j,k)\in A_{od}} x_{odjks}=1,\;
+	x_{odjks}\le z_{js},\;
+	x_{odjks}\le z_{ks}
+	\ \forall (j,k)\in A_{od}
+	\right\}.
+	\label{eq:induced-cost}
+\end{equation}
+Because all demand coefficients are nonnegative and the recourse constraints are
+separable across OD pairs, the recourse value can be written as
+\begin{equation}
+	\Phi_s(z_s,q_s)
+	=
+	\sum_{(o,d)\in\Omega} q_{ods}\,m_{ods}(z_s).
+	\label{eq:recourse-separable}
+\end{equation}
+For fixed $z_s$, the inner worst-case demand problem in \eqref{eq:robust-obj}
+becomes
+\begin{equation}
+	\max_{q_s \in \cU_s}
+	\sum_{(o,d)} q_{ods}\,m_{ods}(z_s)
+	\quad
+	\text{s.t.}\;
+	0 \le q_{ods} \le \overline{q}_{ods},\;
+	\sum_{(o,d)} q_{ods} \le \overline{Q}_s.
+	\label{eq:inner-max}
+\end{equation}
+This is a continuous knapsack problem, most conveniently handled by duality.
+
+\subsection{Derivation of the robust counterpart}
+
+Since $\underline{q}_{ods} = 0$ by design, $B_s := \overline{Q}_s$ exactly,
+and the inner maximization \eqref{eq:inner-max} simplifies to a continuous
+knapsack:
+\begin{equation}
+	\max_{r \ge 0}
+	\sum_{(o,d)}
+	m_{ods}(z_s)\, r_{ods}
+	\quad
+	\text{s.t.}\quad
+	r_{ods} \le \overline{q}_{ods} \;\forall (o,d), \quad
+	\sum_{(o,d)} r_{ods} \le \overline{Q}_s.
+	\label{eq:inner-max-r}
+\end{equation}
+
+\paragraph{Why $m_{ods}(z_s)$ can be treated as a constant.}
+The duality is applied only to the \emph{inner} LP, for a \textbf{fixed}
+$z_s$.  With $z_s$ held fixed, the set of active stations is known, and
+$m_{ods}(z_s)$ \eqref{eq:induced-cost} is a deterministic scalar --- the
+minimum feasible assignment cost for OD pair $(o,d)$ given those stations.
+The inner LP then has $r$ as its only variable and $m_{ods}(z_s)$ as an
+ordinary constant objective coefficient.  LP duality applies to this
+fixed-$z_s$ inner LP, producing dual constraints that contain $m_{ods}(z_s)$
+as a parameter.  It is only when we re-introduce the outer minimization over
+$(y,z)$ that $m_{ods}(z_s)$ becomes a function of a decision variable; the
+$x$-variable substitution in Step 3 handles exactly this.
+
+\paragraph{Step 1: Identify dual variables from the primal constraints.}
+The inner LP \eqref{eq:inner-max-r} has two families of $\le$ constraints.
+LP duality assigns one non-negative dual variable to each:
+\begin{center}
+	\renewcommand{\arraystretch}{1.4}
+	\begin{tabular}{lll}
+		\toprule
+		Primal constraint & RHS                  & Dual variable       \\
+		\midrule
+		$\displaystyle\sum_{(o,d)} r_{ods} \le \overline{Q}_s$
+		                  & $\overline{Q}_s$     & $\alpha_s \ge 0$    \\
+		$r_{ods} \le \overline{q}_{ods}$, \quad each $(o,d)$
+		                  & $\overline{q}_{ods}$ & $\beta_{ods} \ge 0$ \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\paragraph{Step 2: Build the dual objective and constraints.}
+For a maximization LP ($\max c^T r$, $Ar \le b$, $r \ge 0$), the dual is
+$\min b^T y$ subject to $A^T y \ge c$, $y \ge 0$.
+
+\textit{Dual objective.}
+Each primal constraint contributes its RHS times its dual variable:
+\[
+	\min\quad \overline{Q}_s\,\alpha_s \;+\; \sum_{(o,d)} \overline{q}_{ods}\,\beta_{ods}.
+\]
+
+\textit{Dual constraint for each primal variable $r_{ods}$.}
+Variable $r_{ods}$ has objective coefficient $m_{ods}$ in the primal.
+It appears with coefficient $1$ in the budget constraint (dual: $\alpha_s$)
+and coefficient $1$ in its own box constraint (dual: $\beta_{ods}$), and
+zero in every other box constraint.  The dual constraint for $r_{ods}$ is
+therefore:
+\[
+	1\cdot\alpha_s \;+\; 1\cdot\beta_{ods} \;\ge\; m_{ods}
+	\qquad\Longrightarrow\qquad
+	\alpha_s + \beta_{ods} \ge m_{ods}(z_s).
+\]
+
+\paragraph{Step 3: Dual LP and strong duality.}
+Collecting the above, the dual of \eqref{eq:inner-max-r} is:
+\begin{equation}
+	\min_{\alpha_s \ge 0,\;\beta_{ods} \ge 0}
+	\quad
+	\overline{Q}_s\,\alpha_s + \sum_{(o,d)} \overline{q}_{ods}\,\beta_{ods}
+	\qquad
+	\text{s.t.}\quad
+	\alpha_s + \beta_{ods} \ge m_{ods}(z_s)
+	\quad \forall (o,d).
+	\label{eq:dual}
+\end{equation}
+Strong duality holds: the primal \eqref{eq:inner-max-r} is feasible ($r=0$)
+and bounded (finite objective on a bounded polytope), so the optimal values
+of the primal and dual coincide.
+
+\paragraph{Step 4: Embed the recourse minimization.}
+The dual constraint \eqref{eq:dual} still contains the recourse value
+$m_{ods}(z_s)$ from \eqref{eq:induced-cost}, which is itself a minimization
+over assignment variables $x$.  We substitute directly: introduce continuous
+assignment witnesses $x_{odjks} \ge 0$ satisfying
+\eqref{eq:recourse-assign}--\eqref{eq:recourse-active}, and replace
+$m_{ods}(z_s)$ with $\sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}$.  The constraint becomes:
+\begin{equation}
+	\alpha_s + \beta_{ods}
+	\;\ge\;
+	\sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
+	\qquad \forall (o,d),\, s.
+	\label{eq:robust-con}
+\end{equation}
+Note that no auxiliary $t_{ods}$ variable is needed: \eqref{eq:robust-con}
+directly links the dual variables to the assignment cost of $x$.
+
+For any feasible $x$, the right-hand side
+$\sum_{(j,k)\in A_{od}}a_{odjks}x_{odjks}$
+is an upper bound on $m_{ods}(z_s)$, so \eqref{eq:robust-con} is
+at least as tight as the original dual constraint.  At optimality the
+minimization of $\overline{Q}_s\alpha_s + \sum\overline{q}_{ods}\beta_{ods}$
+drives each $x_{od\cdot\cdot s}$ to minimize its assignment cost --- a smaller
+right-hand side relaxes \eqref{eq:robust-con}, allowing smaller
+$(\alpha_s, \beta_{ods})$, which reduces the objective.  Hence the optimal $x$
+achieves
+$\sum_{(j,k)\in A_{od}}a_{odjks}x_{odjks} = m_{ods}(z_s)$, and the two
+formulations are equivalent.
+
+\paragraph{Robust counterpart MILP.}
+Combining with the outer minimization over $(y,z)$, the full formulation is:
+\begin{equation}
+	\min_{x,y,z,\alpha,\beta}
+	\sum_s \overline{Q}_s\,\alpha_s
+	+ \sum_s\sum_{(o,d)} \overline{q}_{ods}\,\beta_{ods}
+	\label{eq:robust-counterpart}
+\end{equation}
+subject to
+\begin{align}
+	\alpha_s + \beta_{ods}
+	                                 & \ge \sum_{(j,k)\in A_{od}} a_{odjks}\,x_{odjks}
+	                                 &                                                 & \forall (o,d),\, s,
+	\label{eq:robust-con-milp}
+	\\
+	\sum_{(j,k)\in A_{od}} x_{odjks} & = 1
+	                                 &                                                 & \forall (o,d),\, s,
+	\label{eq:recourse-counterpart-assign}
+	\\
+	x_{odjks}                        & \le z_{js},\quad x_{odjks} \le z_{ks}
+	                                 &                                                 & \forall (o,d),\, (j,k)\in A_{od},\, s,
+	\label{eq:recourse-counterpart-active}
+\end{align}
+plus \eqref{eq:build}--\eqref{eq:budget}, with $x_{odjks},\alpha_s,\beta_{ods}\ge 0$.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{JuMP Implementation Sketch}
+\label{sec:jump}
+
+The data required for the robust model (in addition to the base model data) are:
+\begin{verbatim}
+q_high[od, s]      # per-OD upper demand bound  (q_bar_ods)
+Q_cap[s]           # total-demand cap            (Q_bar_s)
+a[od, j, k, s]     # assignment cost
+\end{verbatim}
+
+New variables ($x$ is \emph{continuous}---a recourse witness, not a demand count):
+\begin{verbatim}
+@variable(model, x[od in OD, j in J, k in J, s in S] >= 0)
+@variable(model, alpha[s in S] >= 0)
+@variable(model, beta[od in OD, s in S] >= 0)
+\end{verbatim}
+
+Robust objective:
+\begin{verbatim}
+@objective(model, Min,
+    sum(Q_cap[s] * alpha[s] for s in S)
+    + sum(q_high[od,s] * beta[od,s] for od in OD, s in S)
+)
+\end{verbatim}
+
+Assignment witness constraints ($\sum_{j,k} x = 1$, $x \le z$):
+\begin{verbatim}
+@constraint(model, [od in OD, s in S],
+    sum(x[od,j,k,s] for j in J, k in J) == 1)
+@constraint(model, [od in OD, j in J, k in J, s in S],
+    x[od,j,k,s] <= z[j,s])
+@constraint(model, [od in OD, j in J, k in J, s in S],
+    x[od,j,k,s] <= z[k,s])
+\end{verbatim}
+
+Robust dual constraint (no auxiliary $t$ needed---assignment cost appears directly):
+\begin{verbatim}
+@constraint(model, [od in OD, s in S],
+    alpha[s] + beta[od,s] >=
+        sum(a[od,j,k,s] * x[od,j,k,s] for j in J, k in J)
+)
+\end{verbatim}
+
+The first-stage constraints \eqref{eq:build}--\eqref{eq:budget} are unchanged.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Experimental Setup}
+\label{sec:experiment}
+
+We evaluate the model on the Zhuzhou microtransit dataset, which contains
+89{,}669 trips recorded over 111--114 days per time-of-day period.  Trips are
+partitioned into four scenario types by start hour: morning (06--10), afternoon
+(10--15), evening (15--20), and night (20--24).  The calibration script
+\texttt{scripts/generate\_demand\_bounds.jl} reads the historical order data,
+groups it by period, computes per-OD quantiles and a total-demand cap, and writes
+the bounds to \texttt{Data/demand\_bounds.json}.
+
+\subsection{Calibrating the uncertainty set}
+\label{sec:calibration}
+
+Group historical observations by scenario type $s \in \{\text{morning},
+	\text{afternoon}, \text{evening}, \text{night}\}$.  For each OD pair $(o,d)$,
+set the lower bound to zero and compute the upper bound as an empirical quantile:
+\begin{equation}
+	\underline{q}_{ods} = 0,
+	\qquad
+	\overline{q}_{ods} = Q_{q_{\mathrm{high}}}\!\bigl(q_{od}^{\mathrm{hist}} \mid s\bigr).
+	\label{eq:quantiles}
+\end{equation}
+The rationale for fixing $\underline{q}_{ods}=0$ is discussed in
+\S\ref{sec:empirical-uset}.
+
+Next compute the realized total demand on each historical day:
+\begin{equation}
+	Q^{\mathrm{hist}}_{s,t}
+	:= \sum_{(o,d)\in\Omega} q^{\mathrm{hist}}_{ods,t},
+	\label{eq:hist-total}
+\end{equation}
+where $t$ indexes historical observations within scenario type $s$.  Then set
+\begin{equation}
+	\overline{Q}_s
+	=
+	Q_{Q_{\mathrm{cap}}}\!\bigl(Q^{\mathrm{hist}}_{s,t}\bigr),
+	\label{eq:qcap-cal}
+\end{equation}
+where $Q_{\mathrm{cap}}$ is the chosen calibration percentile (e.g., 0.90).
+
+One practical check is to verify that
+\[
+	\sum_{(o,d)} \underline{q}_{ods} \le \overline{Q}_s
+	\le \sum_{(o,d)} \overline{q}_{ods};
+\]
+the left inequality holds trivially since $\underline{q}_{ods}=0$, and the
+right inequality requires that the chosen $\overline{Q}_s$ not exceed the
+sum of all per-OD upper bounds.  When it does, the cap is non-binding and the
+robust model degenerates to a pure box model.
+
+\subsection{Empirical analysis of the uncertainty set}
+\label{sec:empirical-uset}
+
+\textbf{Lower bounds: $\underline{q}_{ods} = 0$.}
+We fix the lower bound at zero for all OD pairs, for two reasons.
+First, demand is highly sparse: most OD pairs appear on fewer than 10\% of
+days, so a quantile-based lower bound would be zero for the vast majority of
+pairs regardless.
+Second, and more importantly, $\underline{q} = 0$ is the \emph{conservative}
+choice for the operator.  In the robust formulation, $\underline{q}_{ods}$
+acts as a floor that \emph{constrains the adversary from below} --- it forces
+them to place at least $\underline{q}_{ods}$ demand on every OD pair, even
+cheap ones, consuming budget that could otherwise be concentrated on the most
+costly corridors.  Setting $\underline{q} = 0$ removes this floor and allows
+the adversary maximum flexibility, giving the operator stronger protection.
+The practical consequence is that $B_s = \overline{Q}_s$ exactly, and the
+$\sum\underline{q}\cdot t$ term in the robust objective vanishes entirely.
+
+\textbf{Upper bounds: $\overline{q}_{ods} = Q_{0.90}$ of zero-padded historical demand.}
+The total-demand cap $\overline{Q}_s$ is the 90th percentile of the daily
+aggregate demand in period $s$.
+
+\paragraph{Is the total-demand cap binding?}
+The central question is whether
+$\sum_{(o,d)}\overline{q}_{ods} > \overline{Q}_s$.
+If not, the cap is slack even when every OD pair hits its maximum simultaneously,
+and the robust model degenerates to a pure box model.  Formally:
+\begin{itemize}
+	\item \textbf{Non-binding (pathological):}\;
+	      $\sum\overline{q}_{ods} \le \overline{Q}_s$ — the budget is never
+	      exhausted; robustness is entirely determined by per-OD bounds.
+	\item \textbf{Binding (meaningful):}\;
+	      $\sum\overline{q}_{ods} > \overline{Q}_s$ — the adversary cannot push
+	      all OD pairs to their upper bounds at once.
+\end{itemize}
+Table~\ref{tab:uset-numbers} reports the key quantities; all four periods are
+in the binding regime.
+
+\begin{table}[h]
+	\centering
+	\begin{tabular}{lrrrrrc}
+		\toprule
+		Period                                        & $\sum\underline{q}$ & $\sum\overline{q}$ & $\overline{Q}$ &
+		gap $\sum\overline{q}-\overline{Q}$           &
+		ratio $\frac{\sum\overline{q}}{\overline{Q}}$ & active OD pairs                                                                        \\
+		\midrule
+		Morning                                       & 0.0                 & 173.0              & 110.0          & +63.0  & 1.57 & 102 / 901  \\
+		Afternoon                                     & 2.0                 & 503.7              & 376.9          & +126.8 & 1.34 & 221 / 1589 \\
+		Evening                                       & 15.2                & 936.2              & 695.6          & +240.6 & 1.35 & 319 / 1802 \\
+		Night                                         & 2.0                 & 255.7              & 208.5          & +47.2  & 1.23 & 121 / 851  \\
+		\bottomrule
+	\end{tabular}
+	\caption{Uncertainty set statistics per period.
+		The gap $\sum\overline{q}-\overline{Q}$ is the total demand ``removed'' from
+		the box by the cap; the ratio $>1$ confirms the cap is binding.
+		``Active OD pairs'' are those with $\hat{q}_{ods}>0$ (appear on $\ge$10\% of
+		days) out of all observed OD pairs.}
+	\label{tab:uset-numbers}
+\end{table}
+
+Figure~\ref{fig:number-line} shows the three landmarks $\sum\underline{q}$,
+$\overline{Q}$, and $\sum\overline{q}$ on a common axis per period.  The
+colored segment is the feasible range of total demand under the cap; the
+faded extension to $\sum\overline{q}$ is the additional demand the
+\emph{box} would allow but the cap removes.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.82\textwidth]{fig12_budget_number_line}
+	\caption{Budget number line per period.  The solid colored segment spans
+		$[0, \overline{Q}]$ (feasible under the cap); the faded extension reaches
+		$\sum\overline{q}$ (the box maximum).  The ``gap'' annotation shows
+		how much total demand the cap cuts relative to the box.  All periods
+		have gap $> 0$, confirming the cap is non-redundant.}
+	\label{fig:number-line}
+\end{figure}
+
+\paragraph{What does the adversary do?}
+The cap forces the adversary to trade off demand across OD pairs.  To see this,
+rank active OD pairs by $\overline{q}_{ods}$ descending and compute the
+cumulative sum.  Once this cumulative sum reaches $\overline{Q}_s$, the budget
+is exhausted and the adversary must leave remaining OD pairs at their lower
+bounds.  Figure~\ref{fig:adv-budget} shows this greedy-filling picture for all
+four periods.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.92\textwidth]{fig13_adversary_budget}
+	\caption{Adversary budget allocation per period.  The $x$-axis counts OD pairs
+		pushed to their upper bound, sorted by $\overline{q}$ descending.  The $y$-axis
+		is the cumulative demand consumed.  The red dashed horizontal line is
+		$\overline{Q}_s$; the black dotted vertical line is where the budget is
+		exhausted.  Only a subset of all active OD pairs can simultaneously be at their
+		maximum.}
+	\label{fig:adv-budget}
+\end{figure}
+
+\paragraph{Historical total demand vs.\ the cap.}
+Figure~\ref{fig:demand-vs-cap} shows the realized total demand on each
+historical day alongside the cap $\overline{Q}_s$ and the box ceiling
+$\sum\overline{q}$.  Because $\overline{Q}_s = Q_{0.90}(\text{historical total})$,
+approximately 10\% of days fall above the cap line (measured: 9.9--10.7\%).
+Historical demand never reaches $\sum\overline{q}$ --- this confirms that
+the box maximum is a theoretical extreme that does not occur in practice,
+and the cap provides a tighter, data-grounded bound.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.92\textwidth]{fig14_demand_vs_cap}
+	\caption{Historical total demand per day (dots) versus the calibrated
+		cap $\overline{Q}$ (red dashed) and the box ceiling $\sum\overline{q}$
+		(black dotted) per period.  The cap sits within the historical range;
+		the box ceiling lies above every observed day.}
+	\label{fig:demand-vs-cap}
+\end{figure}
+
+\paragraph{What the model hedges against.}
+Figure~\ref{fig:wc-vs-typical} compares, for the top-30 OD pairs by
+$\overline{q}$, the adversary's worst-case greedy allocation against the
+median historical demand per pair.  On a typical day most pairs are well
+below their upper bounds; the adversary concentrates budget into the
+highest-$\overline{q}$ pairs.  This illustrates that the robust model
+is not hedging against every OD pair spiking at once (impossible under the
+cap) but against a targeted surge in the most consequential corridors.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.92\textwidth]{fig15_worst_case_vs_typical}
+	\caption{Worst-case adversary allocation (red) vs.\ typical (median) historical
+		demand (colored) for the top-30 OD pairs by $\overline{q}$ per period.
+		The adversary concentrates budget into the dominant pairs; typical demand is
+		spread more uniformly and is lower in aggregate.}
+	\label{fig:wc-vs-typical}
+\end{figure}
+
+\paragraph{The cap gives a reasonable, data-grounded uncertainty set.}
+The key role of the cap is to ensure the uncertainty set is neither trivially
+small nor unrealistically large.  Without the cap, the adversary could push
+every OD pair to its individual upper bound simultaneously, yielding a total
+demand of $\sum\overline{q}$ --- a level that is never observed historically
+(Fig.~\ref{fig:demand-vs-cap}, black dotted line).  Setting
+$\overline{Q}_s = Q_{0.90}(\text{total demand})$ constrains the adversary to
+demand levels that are consistent with what actually occurs on high-demand days,
+making the uncertainty set \emph{empirically plausible} rather than a purely
+theoretical worst case.
+
+The calibration percentile governs how conservatively this cap is placed:
+
+\begin{center}
+	\begin{tabular}{lrrrr}
+		\toprule
+		Period    & $Q_{0.90}$ & $Q_{0.95}$ & $Q_{0.99}$ & $\sum\overline{q}$ (box max) \\
+		\midrule
+		Morning   & 110        & 149        & 291        & 173                          \\
+		Afternoon & 377        & 407        & 543        & 504                          \\
+		Evening   & 696        & 870        & 1055       & 936                          \\
+		Night     & 209        & 235        & 403        & 256                          \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+All three quantile choices sit strictly below $\sum\overline{q}$ (except morning
+where $Q_{0.99} > \sum\overline{q}$, meaning a 99th-percentile cap would be
+non-binding).  The default $Q_{0.90}$ is a reasonable starting point: it
+corresponds to a high but historically realistic demand level, and the gap
+$\sum\overline{q} - \overline{Q}_s$ quantifies how much the cap tightens the
+box.  Section~\ref{sec:cap-sweep} discusses the expected effects of varying
+this choice; the main experiment fixes $Q_{\mathrm{cap}} = 0.90$ and
+$q_{\mathrm{high}} = 0.90$.
+
+\paragraph{Structural observations.}
+\begin{enumerate}
+	\item \textbf{Lower bounds are zero by design}: $B_s = \overline{Q}_s$ exactly,
+	      and the $\sum\underline{q}\cdot t$ term in the robust objective vanishes,
+	      leaving $\overline{Q}_s\,\alpha_s + \sum\overline{q}_{ods}\,\beta_{ods}$.
+
+	\item \textbf{Only 11--18\% of OD pairs are active}: those present on
+	      $\ge$10\% of days receive $\overline{q}_{ods} > 0$; the rest are excluded
+	      and assigned zero demand in the worst case.  Rare high-demand spikes on
+	      sporadic pairs are not hedged.
+
+	\item \textbf{The cap is genuinely binding}: ratios 1.23--1.57$\times$
+	      confirm the set is not pathological.
+\end{enumerate}
+
+\subsection{Two model variants}
+\label{sec:variants}
+
+We compare:
+\begin{enumerate}
+	\item \textbf{Nominal model.}  Uses $q_{ods} = \E[q_{ods}]$ (scenario-average
+	      historical demand).
+	\item \textbf{Robust total-demand-cap model.}  Uses uncertainty set $\cU_s$
+	      with $\overline{Q}_s$ calibrated from data via \eqref{eq:qcap-cal}.
+\end{enumerate}
+
+Each model produces a station selection $(y^\star, z^\star)$.  Given those
+station decisions and a realized demand vector, assignment is handled through
+the recourse problem \eqref{eq:recourse-value}--\eqref{eq:recourse-active}.
+
+\subsection{Sensitivity to calibration quantiles}
+\label{sec:cap-sweep}
+
+The uncertainty set has two independent quantile parameters:
+\begin{itemize}
+	\item $q_{\mathrm{high}}$: the quantile used for per-OD upper bounds
+	      $\overline{q}_{ods} = Q_{q_{\mathrm{high}}}(\text{historical OD demand})$.
+	      Controls how wide the individual OD ranges are.
+	\item $Q_{\mathrm{cap}}$: the quantile used for the total-demand cap
+	      $\overline{Q}_s = Q_{Q_{\mathrm{cap}}}(\text{historical total demand})$.
+	      Controls how tightly the total demand budget is set.
+\end{itemize}
+
+Both are currently set to 0.90 by default (as used in the empirical analysis of
+\S\ref{sec:empirical-uset}).  We sweep both independently to understand how
+each dimension of conservatism affects the solution:
+
+\[
+	q_{\mathrm{high}} \;\in\; \{0.90,\; 0.95,\; 0.99\},
+	\qquad
+	Q_{\mathrm{cap}}  \;\in\; \{0.90,\; 0.95,\; 0.99\}.
+\]
+
+\begin{center}
+	\begin{tabular}{llrrrr}
+		\toprule
+		\multicolumn{2}{l}{Cap / OD bound quantile}                        & \multicolumn{4}{c}{$\overline{Q}_s$ (total-demand cap)}                                         \\
+		\cmidrule(lr){3-6}
+		$Q_{\mathrm{cap}}$                                                 & $q_{\mathrm{high}}$                                     & Morning & Afternoon & Evening & Night \\
+		\midrule
+		0.90                                                               & 0.90                                                    & 110     & 377       & 696     & 209   \\
+		0.95                                                               & 0.90                                                    & 149     & 407       & 870     & 235   \\
+		0.99                                                               & 0.90                                                    & 291     & 543       & 1055    & 403   \\
+		\midrule
+		\multicolumn{2}{l}{$\sum\overline{q}$ at $q_{\mathrm{high}}=0.90$} & 173                                                     & 504     & 936       & 256             \\
+		\multicolumn{2}{l}{$\sum\overline{q}$ at $q_{\mathrm{high}}=0.95$} & —                                                       & —       & —         & —               \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+The expected effects:
+\begin{itemize}
+	\item \textbf{Raising $Q_{\mathrm{cap}}$}: larger $\overline{Q}_s$ $\to$ adversary
+	      has more total-demand budget $\to$ worst-case cost rises $\to$ more
+	      conservative design, higher in-sample cost, stronger out-of-sample
+	      tail guarantee.
+	\item \textbf{Raising $q_{\mathrm{high}}$}: wider per-OD intervals $\to$ $\sum\overline{q}$
+	      increases $\to$ the gap $\sum\overline{q} - \overline{Q}_s$ grows, so the
+	      total-demand cap does \emph{more} work relative to the box.  Effectively,
+	      the adversary has a larger individual budget per corridor.
+	\item \textbf{Joint effect}: raising both simultaneously yields the most
+	      conservative model; the experiment isolates each dimension.
+\end{itemize}
+
+For the implemented May 2025 study on the full Zhuzhou network, we fix
+$l = 50$ and use the existing four-period scenario profile.  We cross
+the two model variants with three active-station budgets
+$k \in \{20, 30, 40\}$, six in-vehicle-time weights
+$\lambda \in \{0, 0.1, 1, 10, 100, 1000\}$, two walking limits
+$\{300, 600\}$\,m, and the three-by-three quantile grid above.  The
+full solve grid therefore has
+$2 \times 3 \times 6 \times 2 \times 3 \times 3 = 648$ configurations.
+For the nominal model, $Q_{\mathrm{cap}}$ and $q_{\mathrm{high}}$ are
+recorded in the job config but have no effect on the solve; the resulting
+redundancy makes it straightforward to isolate each robustness dimension
+when analysing results.
+
+\subsection{In-sample backtest protocol}
+\label{sec:oos}
+
+We evaluate the two models through an \emph{in-sample backtest}.  In the
+implemented experiment, the calendar window is fixed to May 1, 2025 through
+May 31, 2025.  We use that same month both to calibrate the nominal demand
+inputs and robust uncertainty sets and to replay realized demand day by day.
+For each parameter configuration, we solve the nominal and robust models once to obtain designs
+$(y^\star, z^\star)$.  Here $y^\star$ is fixed for the whole month, while the
+active-station plan is scenario-specific: for each scenario type
+$s \in S$ there is a corresponding station set $z_s^\star$.
+
+The month is then replayed day by day and period by period.  For each realized
+day-period instance, first identify its scenario type
+$s^{\mathrm{test}} \in S$ and realized demand vector
+$q^{\mathrm{test}} = (q^{\mathrm{test}}_{od})_{(o,d)\in\Omega}$.  The
+evaluation then uses the corresponding active-station plan
+$z_{s^{\mathrm{test}}}^\star$ for that period.  In other words, the backtest
+\emph{rotates through} the precomputed scenario-specific station sets according
+to the time period being evaluated, while keeping the global build decision
+$y^\star$ fixed.
+
+For each such realized day-period instance, one need not re-solve a large
+optimization model.  Because the reduced recourse problem is separable across OD
+pairs and has no demand-coupled capacity constraints, the active station plan
+$z_{s^{\mathrm{test}}}^\star$ induces a deterministic lookup table: for each OD
+pair $(o,d)$, pick the cheapest admissible active pair
+$(j^\star_{od,s}, k^\star_{od,s}) \in A_{od}$.  Equivalently, precompute the
+minimum assignment cost table $t^\star_{od,s} = m_{ods}(z_s^\star)$.  The
+realized cost is therefore
+\begin{equation}
+	\mathrm{Cost}(y^\star,z^\star,s^{\mathrm{test}},q^{\mathrm{test}})
+	=
+	\Phi_{s^{\mathrm{test}}}(z_{s^{\mathrm{test}}}^\star, q^{\mathrm{test}}).
+	\label{eq:realized-cost}
+\end{equation}
+Operationally, evaluation can therefore be implemented as a table lookup rather
+than as a repeated LP solve.
+
+Equivalently, one may evaluate
+\[
+	\sum_{(o,d)} q_{od}^{\mathrm{test}}\,t^\star_{od,s^{\mathrm{test}}},
+\]
+where $t^\star_{od,s^{\mathrm{test}}}$ denotes the minimum assignment cost
+induced by the fixed active stations for the realized scenario type, with the
+corresponding pair $(j^\star_{od,s}, k^\star_{od,s})$ restricted to lie in the
+admissible walking set $A_{od}$.  The total backtest score for the month is
+obtained by summing or averaging
+\eqref{eq:realized-cost} over all realized day-period instances in the chosen
+calendar window.
+
+This direct cost calculation should be complemented by a simulator-based
+backtest on the same calendar window.  In that second layer, the same fixed
+design $(y^\star, z^\star)$ is replayed in the operational simulator, again
+rotating through the scenario-specific station sets $z_s^\star$ by time period.
+The transformed monthly order file is further split into one file per calendar
+day, and the simulator runs one replay job per day.  The direct lookup-based
+evaluation measures the model-implied assignment cost, while the simulation
+backtest measures how the design performs under the full operational dynamics
+of the simulator.  Both are reported side by side rather than collapsed into a
+single score.
+
+\subsection{Reported metrics}
+
+For each model, report over the test set:
+\begin{itemize}
+	\item Mean realized cost
+	\item 90th and 95th percentile realized cost
+	\item Worst-case realized cost
+	\item Number of OD pairs poorly assigned (realized walking distance exceeding a threshold)
+	\item Stability of station selection across demand realizations
+	\item \emph{Price of robustness}:
+	      $\displaystyle\frac{\text{Robust obj} - \text{Nominal obj}}{\text{Nominal obj}}$
+\end{itemize}
+
+\subsection{Expected finding}
+
+The robust total-demand-cap model protects against systemwide demand surges
+without assuming that every OD pair simultaneously reaches its upper bound.  It
+should improve high-percentile out-of-sample performance relative to the
+nominal model, while typically accepting some increase in mean in-sample cost.
+
+Formally:
+\[
+	\text{Nominal P90} \;\ge\; \text{Robust-Cap P90},
+\]
+\[
+	\text{Nominal mean} \;\le\; \text{Robust-Cap mean}.
+\]
+
+\subsection{Experiment pipeline}
+
+The experiment is driven by scripts in \texttt{scripts/}:
+
+\begin{enumerate}
+	\item \textbf{\texttt{scripts/generate\_demand\_bounds.jl}}: reads historical
+	      order data, groups by time-of-day period, calibrates per-OD quantiles
+	      and total-demand caps, and writes \texttt{Data/demand\_bounds.json}.
+	\item \textbf{\texttt{scripts/01\_setup.jl}}: reads
+	      the experiment base config and sweep config, then generates per-job
+	      TOML configs.
+	\item \textbf{\texttt{scripts/02\_submit.sh}}: SLURM array job template.
+	\item \textbf{\texttt{scripts/03\_run\_job.jl}}: loads config, runs the
+	      appropriate model, exports the solved assignment and station decisions,
+	      prepares the transformed May 2025 orders, runs the daily simulation
+	      replays, aggregates direct-cost and simulator metrics, and saves
+	      \texttt{metrics.json}.
+	\item \textbf{\texttt{scripts/04\_prepare\_backtest.jl}}: materializes the
+	      month-level transformed orders, daily transformed order files, station
+	      and vehicle simulator inputs, and the per-day simulation manifest.
+	\item \textbf{\texttt{scripts/05\_run\_simulation\_day.jl}}: executes one
+	      simulator replay job from a single manifest entry.
+	\item \textbf{\texttt{scripts/06\_aggregate\_backtest.jl}}: combines daily
+	      simulator outputs into month-level replay metrics.
+	\item \textbf{\texttt{scripts/aggregate.jl}}: loads all \texttt{metrics.json}
+	      files, produces \texttt{analysis/results.csv} and prints summary
+	      statistics including the price of robustness.
+\end{enumerate}
+
+The sweep in \texttt{experiments/2026-05-01\_nominal\_vs\_robust/} crosses
+the two model variants, three station budgets $k \in \{20, 30, 40\}$, six
+in-vehicle-time weights $\lambda \in \{0, 0.1, 1, 10, 100, 1000\}$, two
+walking limits $\{300, 600\}$\,m, and the three-by-three
+$(Q_{\mathrm{cap}}, q_{\mathrm{high}}) \in \{0.90, 0.95, 0.99\}^2$
+quantile grid, giving $2 \times 3 \times 6 \times 2 \times 3 \times 3 = 648$
+solved configurations in total.  Each solved configuration is then replayed
+on the full May 2025 month, producing one transformed month-level order file
+and 31 daily simulator jobs.
+
+\subsection{Per-scenario Benders reformulation}
+\label{sec:benders}
+
+The extensive-form models above contain a large block of assignment variables
+\(x\), one for each scenario, OD pair, and admissible pickup-dropoff station
+pair. Since the assignment layer is completely determined once the
+scenario-specific active-station vector \(z_s\) is fixed, it is natural to
+eliminate \(x\) from the master problem and recover its effect through
+scenario-specific Benders cuts.
+
+Throughout this section, we write \(p=(o,d)\) for an OD pair, and let
+\(A_p \equiv A_{od}\) denote the admissible station-pair set for that OD pair.
+For a candidate pair \((j,k)\in A_p\), define
+\[
+	c_{pjk}
+	:=
+	d^{\mathrm{orig}}_{oj}+d^{\mathrm{dest}}_{dk}+\lambda\,c_{jk}.
+\]
+For the nominal model, the scenario cost coefficient is \(q_{ps}c_{pjk}\).
+We keep \(\rho_s\) outside the subproblem and place it in the master objective.
+
+\paragraph{Nominal scenario value.}
+For a fixed scenario \(s\) and a fixed activation vector \(z_s\), the nominal
+assignment cost is
+\begin{equation}
+	\Phi_s(z_s)
+	=
+	\min_{x}
+	\left\{
+	\sum_{p}\sum_{(j,k)\in A_p} q_{ps} c_{pjk} x_{pjks}
+	:
+	\sum_{(j,k)\in A_p} x_{pjks}=1\ \forall p,\;
+	x_{pjks}\le z_{js},\;
+	x_{pjks}\le z_{ks},\;
+	x_{pjks}\ge 0
+	\right\}.
+	\label{eq:benders-nominal-subproblem}
+\end{equation}
+
+The Benders master introduces one recourse approximation variable \(\eta_s\) per
+scenario:
+\begin{equation}
+	\begin{aligned}
+		\min_{y,z,\eta}\quad
+		 & \sum_{s\in S}\rho_s\,\eta_s                   \\
+		\text{s.t.}\quad
+		 & z_{js}\le y_j               &  & \forall j,s, \\
+		 & \sum_{j\in J} y_j = l,                        \\
+		 & \sum_{j\in J} z_{js} = k    &  & \forall s,   \\
+		 & y_j,z_{js}\in\{0,1\},                         \\
+		 & \eta_s \ge 0                &  & \forall s,
+	\end{aligned}
+	\label{eq:benders-master-nominal}
+\end{equation}
+plus Benders cuts of the form
+\[
+	\eta_s \ge \text{valid lower bound on } \Phi_s(z_s).
+\]
+
+\paragraph{Master-side feasibility checks.}
+Since the assignment subproblem is only meaningful when every demand-relevant
+origin and destination has at least one reachable active station, we add simple
+coverage constraints to the master problem.  For the nominal model, define the
+scenario-specific set of demand-relevant locations
+\[
+	I_s
+	:=
+	\left\{
+	i\in J:\exists d\in J \text{ such that } q_{ids}>0
+	\right\}
+	\cup
+	\left\{
+	i\in J:\exists o\in J \text{ such that } q_{ois}>0
+	\right\}.
+\]
+Then impose
+\begin{equation}
+	\sum_{j\in \Delta(i)} z_{js}\ge 1
+	\qquad \forall i\in I_s,\ s\in S.
+	\label{eq:benders-nominal-feasibility-check}
+\end{equation}
+These constraints should not be imposed for all \(i\in J\), since locations
+with no demand in scenario \(s\) need not consume active-station capacity.
+
+For the robust model, the same logic is applied to locations that could carry
+demand under the uncertainty set.  Define
+\[
+	I_s^{\mathrm{rob}}
+	:=
+	\left\{
+	i\in J:\exists d\in J \text{ such that } \overline q_{ids}>0
+	\right\}
+	\cup
+	\left\{
+	i\in J:\exists o\in J \text{ such that } \overline q_{ois}>0
+	\right\},
+\]
+and impose
+\begin{equation}
+	\sum_{j\in \Delta(i)} z_{js}\ge 1
+	\qquad \forall i\in I_s^{\mathrm{rob}},\ s\in S.
+	\label{eq:benders-robust-feasibility-check}
+\end{equation}
+Because the admissible pair set \(A_{od}\) allows \(j=k\), these marginal
+coverage constraints are sufficient to ensure that every demand-relevant OD pair
+has at least one admissible active assignment in the subproblem.
+
+\paragraph{Subproblem solved by inspection.}
+For fixed \(z_s\), \eqref{eq:benders-nominal-subproblem} decomposes by OD pair.
+For each \(p\), define
+\begin{equation}
+	m_{ps}(z_s)
+	:=
+	\min_{\substack{(j,k)\in A_p\\ z_{js}=1,\ z_{ks}=1}}
+	c_{pjk}.
+	\label{eq:od-inspection-value}
+\end{equation}
+Then
+\begin{equation}
+	\Phi_s(z_s)=\sum_p q_{ps}\,m_{ps}(z_s).
+	\label{eq:scenario-inspection-value}
+\end{equation}
+Hence the subproblem does not require solving an LP: for each OD pair \(p\), one
+simply scans the admissible pairs \((j,k)\in A_p\) and picks the cheapest pair
+whose two endpoints are active in scenario \(s\).
+
+\paragraph{A valid per-scenario Benders cut.}
+Let \(z_s^m\) be the current scenario activation vector at Benders iteration
+\(m\). For each OD pair \(p\), let
+\[
+	u_{ps}^m := m_{ps}(z_s^m),
+\]
+and define, for each admissible pair \((j,k)\in A_p\),
+\[
+	\Delta_{pjks}^m := \max\{0,\ u_{ps}^m - c_{pjk}\}.
+\]
+Now define dual multipliers \(\mu_{pjks}^m,\nu_{pjks}^m\ge 0\) as follows:
+\[
+	(\mu_{pjks}^m,\nu_{pjks}^m)
+	=
+	\begin{cases}
+		(0,0),               & z_{js}^m=1,\ z_{ks}^m=1, \\
+		(\Delta_{pjks}^m,0), & z_{js}^m=0,\ z_{ks}^m=1, \\
+		(0,\Delta_{pjks}^m), & z_{js}^m=1,\ z_{ks}^m=0, \\
+		\left(\frac12\Delta_{pjks}^m,\frac12\Delta_{pjks}^m\right),
+		                     & z_{js}^m=0,\ z_{ks}^m=0.
+	\end{cases}
+\]
+These values satisfy
+\[
+	u_{ps}^m - \mu_{pjks}^m - \nu_{pjks}^m \le c_{pjk}
+	\qquad \forall (j,k)\in A_p,
+\]
+so they form a feasible dual solution of the OD-level assignment problem.
+Therefore the affine function
+\begin{equation}
+	\ell_{ps}^m(z_s)
+	:=
+	u_{ps}^m
+	-
+	\sum_{(j,k)\in A_p} \mu_{pjks}^m z_{js}
+	-
+	\sum_{(j,k)\in A_p} \nu_{pjks}^m z_{ks}
+	\label{eq:od-affine-lower-bound}
+\end{equation}
+is a valid lower bound on \(m_{ps}(z_s)\) for every \(z_s\), and it is tight at
+the current point \(z_s^m\):
+\[
+	\ell_{ps}^m(z_s^m)=m_{ps}(z_s^m)=u_{ps}^m.
+\]
+
+Aggregating over OD pairs yields the per-scenario nominal cut
+\begin{equation}
+	\eta_s
+	\ge
+	\sum_p q_{ps}\,\ell_{ps}^m(z_s).
+	\label{eq:nominal-scenario-cut-expanded}
+\end{equation}
+Equivalently, after collecting coefficients by station,
+\begin{equation}
+	\eta_s
+	\ge
+	\beta_s^m
+	-
+	\sum_{j\in J}\Gamma_{js}^m z_{js}.
+	\label{eq:nominal-scenario-cut}
+\end{equation}
+where
+\[
+	\beta_s^m := \sum_p q_{ps}u_{ps}^m,
+\]
+and
+\[
+	\Gamma_{js}^m
+	:=
+	\sum_p q_{ps}
+	\left(
+	\sum_{k:(j,k)\in A_p}\mu_{pjks}^m
+	+
+	\sum_{h:(h,j)\in A_p}\nu_{phjs}^m
+	\right).
+\]
+Cut \eqref{eq:nominal-scenario-cut} is a valid Benders cut for scenario \(s\),
+and it is exact at the incumbent \(z_s^m\).
+
+\paragraph{Robust scenario value.}
+For the robust total-demand-cap model, define the scenario value
+\begin{equation}
+	\Psi_s(z_s)
+	=
+	\max_{q_s\in U_s}
+	\sum_p q_{ps}\,m_{ps}(z_s),
+	\label{eq:robust-scenario-value}
+\end{equation}
+where \(U_s\) is the scenario-\(s\) uncertainty set
+\[
+	U_s
+	=
+	\left\{
+	q_s:
+	q_{ps}^\ell \le q_{ps} \le q_{ps}^\ell + q_{ps}^\wedge\ \forall p,\quad
+	\sum_p (q_{ps}-q_{ps}^\ell)\le B_s
+	\right\}.
+\]
+
+The robust master has the same \(y\) and \(z\) variables as the nominal master,
+but the objective is now
+\begin{equation}
+	\min_{y,z,\eta}\quad \sum_{s\in S}\eta_s
+	\label{eq:benders-master-robust-obj}
+\end{equation}
+subject to the same station-budget and linking constraints, together with
+robust scenario cuts that lower-bound \(\Psi_s(z_s)\).
+
+\paragraph{Robust worst-case demand solved by inspection.}
+At the current Benders iterate \(z_s^m\), first compute the OD-level costs
+\(u_{ps}^m=m_{ps}(z_s^m)\) exactly as in the nominal case by scanning admissible
+active pairs. Then solve
+\[
+	\max_{q_s\in U_s} \sum_p q_{ps}u_{ps}^m.
+\]
+This is a continuous knapsack problem. The optimal solution is obtained by
+inspection:
+\begin{enumerate}
+	\item start from the lower bounds \(q_{ps}=q_{ps}^\ell\);
+	\item sort OD pairs \(p\) in decreasing order of \(u_{ps}^m\);
+	\item allocate the remaining budget \(B_s\) greedily to the largest
+	      \(u_{ps}^m\), up to the cap \(q_{ps}^\wedge\) for each OD pair.
+\end{enumerate}
+Let \(q_{ps}^{*,m}\) denote the resulting worst-case demand vector.
+
+\paragraph{Robust per-scenario cut.}
+Using the same OD-level affine lower bounds \(\ell_{ps}^m(z_s)\) from
+\eqref{eq:od-affine-lower-bound}, we obtain
+\[
+	\Psi_s(z_s)
+	=
+	\max_{q_s\in U_s}\sum_p q_{ps}m_{ps}(z_s)
+	\ge
+	\sum_p q_{ps}^{*,m} m_{ps}(z_s)
+	\ge
+	\sum_p q_{ps}^{*,m} \ell_{ps}^m(z_s).
+\]
+Therefore a valid robust Benders cut for scenario \(s\) is
+\begin{equation}
+	\eta_s
+	\ge
+	\sum_p q_{ps}^{*,m}\,\ell_{ps}^m(z_s).
+	\label{eq:robust-scenario-cut-expanded}
+\end{equation}
+After collecting coefficients by station, this becomes
+\begin{equation}
+	\eta_s
+	\ge
+	\bar\beta_s^m
+	-
+	\sum_{j\in J}\bar\Gamma_{js}^m z_{js}.
+	\label{eq:robust-scenario-cut}
+\end{equation}
+where
+\[
+	\bar\beta_s^m := \sum_p q_{ps}^{*,m}u_{ps}^m,
+\]
+and
+\[
+	\bar\Gamma_{js}^m
+	:=
+	\sum_p q_{ps}^{*,m}
+	\left(
+	\sum_{k:(j,k)\in A_p}\mu_{pjks}^m
+	+
+	\sum_{h:(h,j)\in A_p}\nu_{phjs}^m
+	\right).
+\]
+Again, the cut is tight at the incumbent \(z_s^m\).
+
+\paragraph{Interpretation.}
+Both the nominal and robust Benders cuts are scenario-specific and involve only
+the activation variables \(z_{js}\) for that scenario. The long-term build
+decision \(y_j\) does not appear directly in the cuts; it couples scenarios only
+through the linking constraints \(z_{js}\le y_j\). This is exactly the
+decomposition structure of the two-stage problem:
+\[
+	y \;\rightarrow\; z_s \;\rightarrow\; x_s.
+\]
+The large assignment block \(x\) disappears from the master problem, and the
+scenario recourse value is recovered through cuts that can be generated by
+inspection rather than by repeatedly solving large LPs.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+We propose a robust extension of the VBS station selection model based on
+per-OD upper bounds together with a scenario-level cap on total demand, with
+lower bounds fixed at zero by design.  The key insight is that, once assignment
+is written correctly as a recourse function, the resulting worst-case demand
+problem is a continuous knapsack in demand variables, with a clean dual that
+yields a linear robust counterpart solvable by the same MILP solver as the
+nominal model.  The parameters $\overline{q}_{ods}$ and $\overline{Q}_s$ have
+direct empirical interpretations and can be calibrated transparently from
+historical data.  Framed this way, the report isolates the core comparison of
+interest: the nominal base model versus a tractable robust counterpart that
+hedges against adverse but bounded demand shifts.
+
+% ──────────────────────────────────────────────────────────────────────────────
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+	\bibitem{bertsimas2004price}
+	D. Bertsimas and M. Sim,
+	\textit{The price of robustness},
+	Operations Research 52(1):35--53, 2004.
+
+	\bibitem{bertsimas2011theory}
+	D. Bertsimas and D. B. Brown,
+	\textit{Constructing uncertainty sets for robust linear optimization},
+	Operations Research 57(6):1483--1495, 2009.
+
+\end{thebibliography}
+
+\end{document}

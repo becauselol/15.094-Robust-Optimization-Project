@@ -1,0 +1,48 @@
+# Base configuration for nominal vs smoothed nominal vs robust comparison experiment.
+# These values are shared across all jobs; sweep.toml overrides [parameters].
+
+name = "nominal_smoothed_robust"
+
+[data]
+station_file       = "Data/zhuzhou_data/station.csv"
+order_file         = "Data/zhuzhou_data/order.csv"
+segment_file       = "Data/zhuzhou_data/segment.csv"
+vehicle_file       = "Data/zhuzhou_data/vehicle.csv"
+
+[model]
+# Overridden per job via sweep.toml; one of:
+#   NominalModel | SmoothedNominalModel | RobustTotalDemandCapModel
+type = "NominalModel"
+
+[parameters]
+# Scenario definition: 4 time-of-day periods derived from the four_period profile
+scenario_profile = "four_period"
+# Optimization window (in-sample)
+start_date       = "2025-04-01"
+end_date         = "2025-04-30"
+# Backtest window (out-of-sample)
+backtest_start_date = "2025-05-01"
+backtest_end_date   = "2025-05-31"
+
+l = 50
+# k, in_vehicle_time_weight, max_walking_distance, and model-specific parameters
+# are swept via sweep.toml
+
+[simulation]
+# Set enabled = false to skip simulation and only collect analytical metrics
+# (in-sample objective + direct backtest cost from order transformation).
+enabled = false
+base_date = 2025-04-01
+optimization_interval = 300.0
+max_wait_time = 900.0
+max_time = 86400.0
+assignment_mode = "batch"
+run_until_complete = true
+verbose = false
+batch_write_logs = false
+batch_write_size = 1000
+
+[solver]
+silent             = false
+time_limit_seconds = 3600
+mip_gap            = 0.001

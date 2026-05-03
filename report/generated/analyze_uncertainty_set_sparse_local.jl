@@ -259,7 +259,7 @@ p10 = plot(size=(700,500), dpi=150,
 
 for s in 1:4
     # include only pairs with q̄ > 0
-    q_bars = [q_low_all[s][od] + q_hat_all[s][od]
+    q_bars = [get(q_low_all[s], od, 0.0) + q_hat_all[s][od]
               for od in keys(q_hat_all[s]) if q_hat_all[s][od] > 0]
     sort!(q_bars)
     n = length(q_bars)

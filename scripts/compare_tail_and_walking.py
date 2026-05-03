@@ -43,6 +43,8 @@ from compare_weighted_total_cost import (
     load_station_coords,
 )
 
+JULIA_GT_FILENAME = "julia_ground_truth_feasibility.csv"
+
 
 def get_quantile(values: list[float], q: float) -> float | None:
     if not values:
@@ -90,6 +92,13 @@ def collect_runs(exp_dir: Path) -> tuple[dict[tuple[int, float], list[dict[str, 
 
 
 def theoretical_walking_violation_rates(run_dir: Path) -> dict[str, float | None]:
+    exp_dir = run_dir.parent.parent
+    julia_gt_path = exp_dir / JULIA_GT_FILENAME
+    if julia_gt_path.exists():
+        julia_rates = theoretical_walking_violation_rates_from_julia(run_dir, julia_gt_path)
+        if julia_rates:
+            return julia_rates
+
     metrics = load_metrics(run_dir / "metrics.json")
     max_walking_distance = get_max_walking_distance(run_dir)
     lambda_val = float(metrics.get("in_vehicle_time_weight", 0.0))
@@ -139,6 +148,33 @@ def theoretical_walking_violation_rates(run_dir: Path) -> dict[str, float | None
 
     rates["scenario_avg"] = sum(period_rates) / len(period_rates) if period_rates else None
     return rates
+
+
+def theoretical_walking_violation_rates_from_julia(
+    run_dir: Path, julia_gt_path: Path
+) -> dict[str, float | None]:
+    if not julia_gt_path.exists():
+        return {}
+
+    scenario_rates: dict[str, float | None] = {}
+    period_values: list[float] = []
+    with julia_gt_path.open(newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row.get("run_dir") != str(run_dir):
+                continue
+            scenario_idx = row.get("scenario_idx")
+            rate_raw = row.get("julia_feasible_od_rate")
+            if scenario_idx is None or rate_raw in (None, ""):
+                continue
+            label = f"period_{scenario_idx}"
+            violation_rate = 1.0 - float(rate_raw)
+            scenario_rates[label] = violation_rate
+            period_values.append(violation_rate)
+
+    if period_values:
+        scenario_rates["scenario_avg"] = sum(period_values) / len(period_values)
+    return scenario_rates
 
 
 def build_run_summary(record: dict[str, Any]) -> dict[str, Any]:

@@ -9,6 +9,7 @@ Usage:
 
 Supported model types (set via cfg["model"]["type"]):
     "NominalModel"              — uses mean demand (E[q_ods]), NominalTwoStageODModel
+    "SmoothedNominalModel"      — shrinks sparse OD means toward a gravity prior
     "RobustTotalDemandCapModel" — total-demand-cap robust counterpart
 """
 
@@ -116,6 +117,17 @@ try
             max_walking_distance   = max_walking_distance,
         )
         run_opt(nominal_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
+
+    elseif model_type == "SmoothedNominalModel"
+        smoothed_nominal_model = SmoothedNominalTwoStageODModel(
+            k, l;
+            in_vehicle_time_weight = lambda_val,
+            max_walking_distance   = max_walking_distance,
+            smoothing_tau          = Float64(get(params, "smoothing_tau", 5.0)),
+            pseudo_demand_fraction = Float64(get(params, "pseudo_demand_fraction", 0.02)),
+            gravity_uniform_mix    = Float64(get(params, "gravity_uniform_mix", 0.05)),
+        )
+        run_opt(smoothed_nominal_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
 
     elseif model_type == "RobustTotalDemandCapModel"
         demand_q = if haskey(params, "demand_quantile")
