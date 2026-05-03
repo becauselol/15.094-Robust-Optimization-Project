@@ -47,7 +47,7 @@ println("✓ Loaded config: $config_file")
 params     = get(cfg, "parameters", Dict())
 model_cfg  = get(cfg, "model", Dict())
 model_type = get(model_cfg, "type", "NominalModel")
-solve_mode = Symbol(get(model_cfg, "solve_mode", "cutting_plane"))
+solve_mode = Symbol(get(model_cfg, "solve_mode", "exact_dual"))
 
 println("\nParameters:")
 for (k, v) in params; println("  $k = $v"); end
