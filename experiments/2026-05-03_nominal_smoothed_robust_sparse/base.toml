@@ -4,10 +4,10 @@
 name = "nominal_smoothed_robust"
 
 [data]
-station_file       = "Data/zhuzhou_data_40/station.csv"
-order_file         = "Data/zhuzhou_data_40/order.csv"
-segment_file       = "Data/zhuzhou_data_40/segment.csv"
-vehicle_file       = "Data/zhuzhou_data_40/vehicle.csv"
+station_file       = "Data/zhuzhou_data_40_sparse_v3/station.csv"
+order_file         = "Data/zhuzhou_data_40_sparse_v3/order.csv"
+segment_file       = "Data/zhuzhou_data_40_sparse_v3/segment.csv"
+vehicle_file       = "Data/zhuzhou_data_40_sparse_v3/vehicle.csv"
 
 [model]
 # Overridden per job via sweep.toml; one of:

@@ -7,10 +7,10 @@
 #SBATCH --mem=32G
 #SBATCH --array=1-15
 #SBATCH --time=00:30:00
-#SBATCH -o experiments/2026-05-03_nominal_smoothed_robust/slurm_logs/job-%A_%a.out
-#SBATCH -e experiments/2026-05-03_nominal_smoothed_robust/slurm_logs/job-%A_%a.err
+#SBATCH -o experiments/2026-05-03_nominal_smoothed_robust_sparse/slurm_logs/job-%A_%a.out
+#SBATCH -e experiments/2026-05-03_nominal_smoothed_robust_sparse/slurm_logs/job-%A_%a.err
 
-EXPERIMENT="experiments/2026-05-03_nominal_smoothed_robust"
+EXPERIMENT="experiments/2026-05-03_nominal_smoothed_robust_sparse"
 
 PROJECT_ROOT="$SLURM_SUBMIT_DIR"
 EXP_DIR="$PROJECT_ROOT/$EXPERIMENT"
