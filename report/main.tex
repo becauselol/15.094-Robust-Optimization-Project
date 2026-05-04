@@ -457,28 +457,28 @@ robust solutions eliminate them in all scenarios.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Sparse-network nominal-versus-robust comparison. Uncovered stations are summed across the four time periods.}
+	\caption{Sparse-network nominal-versus-robust comparison (\texttt{2026-05-03\_nominal\_smoothed\_robust\_sparse}). Costs are period-aware minimum-cost assignments from active stations. Uncovered = May orders with no feasible active-station assignment within the walking limit.}
 	\label{tab:sparse-summary}
 	\small
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.      & May std.        & Uncovered stations \\
+			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.      & May std.        & Uncovered \\
 			\midrule
-			10  & --   & Nominal & \textbf{4561.15} & 4286.38          & 849.13          & 894.21          & 3                  \\
-			10  & 0.90 & Robust  & 4823.04          & 4256.25          & 807.51          & \textbf{892.55} & \textbf{0}         \\
-			10  & 0.95 & Robust  & 4832.25          & 4312.02          & \textbf{791.53} & 901.22          & \textbf{0}         \\
-			10  & 0.99 & Robust  & 4803.70          & \textbf{4242.85} & 800.80          & 905.16          & \textbf{0}         \\
+			10  & --   & Nominal & \textbf{4446.97} & \textbf{4457.75} & 851.46          & 928.11          & 6                  \\
+			10  & 0.90 & Robust  & 4505.20          & 4529.14          & 845.97          & 911.70          & \textbf{0}         \\
+			10  & 0.95 & Robust  & 4521.04          & 4561.14          & \textbf{836.33} & \textbf{897.29} & \textbf{0}         \\
+			10  & 0.99 & Robust  & 4507.51          & 4533.24          & 840.04          & 898.53          & \textbf{0}         \\
 			\midrule
-			15  & --   & Nominal & \textbf{4319.07} & \textbf{4241.52} & 853.06          & 907.28          & 1                  \\
-			15  & 0.90 & Robust  & 4549.15          & 4271.61          & 798.78          & 888.68          & \textbf{0}         \\
-			15  & 0.95 & Robust  & 4541.65          & 4272.15          & \textbf{764.65} & 887.14          & \textbf{0}         \\
-			15  & 0.99 & Robust  & 4532.36          & 4273.29          & 789.63          & \textbf{886.12} & \textbf{0}         \\
+			15  & --   & Nominal & \textbf{4182.48} & \textbf{4185.40} & 881.21          & 921.42          & 1                  \\
+			15  & 0.90 & Robust  & 4234.00          & 4233.57          & 853.99          & 888.42          & \textbf{0}         \\
+			15  & 0.95 & Robust  & 4235.88          & 4242.24          & \textbf{848.30} & \textbf{882.88} & \textbf{0}         \\
+			15  & 0.99 & Robust  & 4236.58          & 4228.01          & 855.82          & 898.32          & \textbf{0}         \\
 			\midrule
-			20  & --   & Nominal & \textbf{4261.51} & 4241.34          & 883.78          & 907.12          & \textbf{0}         \\
-			20  & 0.90 & Robust  & 4347.70          & \textbf{4241.16} & 811.70          & 907.61          & \textbf{0}         \\
-			20  & 0.95 & Robust  & 4449.54          & 4243.56          & \textbf{758.56} & 903.82          & \textbf{0}         \\
-			20  & 0.99 & Robust  & 4394.34          & 4243.84          & 774.26          & \textbf{902.89} & \textbf{0}         \\
+			20  & --   & Nominal & \textbf{4136.13} & \textbf{4130.70} & 901.73          & 930.32          & \textbf{0}         \\
+			20  & 0.90 & Robust  & 4149.90          & 4143.05          & 886.97          & 916.94          & \textbf{0}         \\
+			20  & 0.95 & Robust  & 4155.78          & 4156.06          & \textbf{883.00} & \textbf{909.35} & \textbf{0}         \\
+			20  & 0.99 & Robust  & 4148.22          & 4141.16          & 887.77          & 915.85          & \textbf{0}         \\
 			\bottomrule
 		\end{tabular}%
 	}
@@ -508,6 +508,45 @@ robust solutions eliminate them in all scenarios.
 			20  & 0.90 & Robust  & 4174.13          & 4084.27          & 1015.06          & 1081.13          & \textbf{0}         \\
 			20  & 0.95 & Robust  & 4257.75          & 4094.05          & \textbf{1002.38} & \textbf{1065.27} & \textbf{0}         \\
 			20  & 0.99 & Robust  & 4255.09          & 4081.41          & 1006.12          & 1085.00          & \textbf{0}         \\
+			\bottomrule
+		\end{tabular}%
+	}
+\end{table}
+
+For the follow-up 2026-05-03 experiment, we compare three models on a smaller
+pilot sweep on the denser sampled-network instance: the original nominal model,
+the smoothed nominal variant, and the robust total-demand-cap model.  The values
+in \cref{tab:three-model-summary} were generated from
+\texttt{scripts/summarize\_three\_model\_results.jl} using the same
+period-aware active-station cost computation as in the sparse comparison above.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Three-model comparison for the 2026-05-03 sampled-network pilot experiment (\texttt{2026-05-03\_nominal\_smoothed\_robust}). Costs are period-aware minimum-cost assignments from active stations, computed using \texttt{summarize\_three\_model\_results.jl}.}
+	\label{tab:three-model-summary}
+	\small
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{lllccccc}
+			\toprule
+			$k$ & $q$  & Model             & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered \\
+			\midrule
+			10  & --   & Nominal           & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
+			10  & --   & Smoothed nominal  & 4266.71          & 4344.73          & 1132.77          & 1116.09          & \textbf{0} \\
+			10  & 0.90 & Robust            & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
+			10  & 0.95 & Robust            & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
+			10  & 0.99 & Robust            & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
+			\midrule
+			15  & --   & Nominal           & \textbf{3977.09} & 4049.94          & 1145.30          & 1119.97          & \textbf{0} \\
+			15  & --   & Smoothed nominal  & 3977.48          & \textbf{4045.18} & 1145.55          & 1125.89          & \textbf{0} \\
+			15  & 0.90 & Robust            & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
+			15  & 0.95 & Robust            & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
+			15  & 0.99 & Robust            & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
+			\midrule
+			20  & --   & Nominal           & 3924.95          & 3984.77          & 1168.67          & 1142.49          & \textbf{0} \\
+			20  & --   & Smoothed nominal  & \textbf{3924.16} & \textbf{3964.34} & 1159.35          & 1113.86          & \textbf{0} \\
+			20  & 0.90 & Robust            & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
+			20  & 0.95 & Robust            & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
+			20  & 0.99 & Robust            & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
