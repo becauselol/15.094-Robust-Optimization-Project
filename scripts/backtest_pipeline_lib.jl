@@ -318,7 +318,7 @@ function prepare_backtest_artifacts(project_root::String, cfg::Dict, run_dir::St
 
     base_station_file = joinpath(project_root, data_cfg["station_file"])
     base_segment_file = joinpath(project_root, data_cfg["segment_file"])
-    base_order_file = joinpath(project_root, data_cfg["order_file"])
+    base_order_file = joinpath(project_root, get(data_cfg, "backtest_order_file", data_cfg["order_file"]))
     base_vehicle_file = joinpath(project_root, get(data_cfg, "vehicle_file", "Data/zhuzhou_data/vehicle.csv"))
     station_selection_file = joinpath(run_dir, "variable_exports", "station_selection.csv")
 
