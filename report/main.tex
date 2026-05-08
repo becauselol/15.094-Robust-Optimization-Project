@@ -41,14 +41,35 @@
 
 \section{Introduction}
 
-Microtransit is a form of transit that seeks to fill the gap between the existing services such as private-hire vehicles and scheduled public transit. Microtransit is an on-demand, publicly shared-ride service. It is like private-hire, in the sense that it is flexible and on-demand, but it also benefits from the economies of scale of scheduled public transportation by using mid-size capacity vehicles and allowing for a higher vehicle load.
+Microtransit is a form of transit that seeks to fill the gap between existing services such as private-hire vehicles and scheduled public transit. It is an on-demand, publicly accessible shared-ride service. Like private-hire, it is flexible and on-demand, but it also benefits from the economies of scale of scheduled public transportation by using mid-size capacity vehicles and allowing for greater vehicle utilization.
 
-However, having a fully flexible microtransit system is overly complex and reduces its aggregation capabilities, often having to make significant detours just to satisfy one or two customers. Thus, selection of these \emph{virtual bus stops} (VBS) becomes an important strategic decision since the optimal selection will allow for better aggregation, decreased waiting time and less waiting time for passengers, resulting in an overall improvement of customer experience as well as reduction in service costs.
+However, having a fully flexible microtransit system is overly complex and reduces its aggregation capabilities, often having to make significant detours just to satisfy one or two customers. Thus, selection of these \emph{virtual bus stops} (VBS) becomes an important strategic decision. The optimal selection enables better passenger aggregation, reducing total vehicle distance travelled and improving vehicle utilization, while offering passengers decreased waiting times and fewer detours than scheduled public transit.
 
-While the VBS selection is able to adapt between service periods within the day (Morning, Afternoon, Evening), the selection for each service period should be robust against shifts in the demand patterns. Within a service period, there can be a fluctuation on a day to day basis and the system should be robust and still provide a relatively similar experience across each day. We thus address this problem with a two-stage robust model where origin-destination (OD) demand varies within a budget uncertainty set.
+While the VBS selection is able to adapt between service periods within the day (morning, afternoon, evening, night), the selection for each service period should be robust against shifts in the demand patterns. Within a service period, demand can fluctuate from day to day and the system should still provide a relatively similar experience across each day. We thus address this problem with a two-stage robust model where origin-destination (OD) demand varies within a budgeted uncertainty set.
 
 \section{Model}
 \subsection{Nominal Model}
+
+\paragraph{Sets.}
+\[
+	\begin{aligned}
+		J      & &  & \text{set of candidate stations,}              \\
+		S      & &  & \text{set of service scenarios,}               \\
+		\Omega & &  & \text{set of origin-destination pairs,}        \\
+		A_{od} & &  & \text{admissible pickup--dropoff station pairs for OD pair }(o,d),
+	\end{aligned}
+\]
+where
+\[
+	A_{od}
+	=
+	\left\{
+	(j,k)\in J\times J :
+	d^{\mathrm{orig}}_{oj}\le W^{\max},\
+	d^{\mathrm{dest}}_{dk}\le W^{\max}
+	\right\}.
+\]
+In the experimental instance, $A_{od}$ is non-empty for all $(o,d)\in\Omega$.
 
 \paragraph{Input parameters.}
 The following parameters are assumed to be known:
@@ -64,20 +85,6 @@ The following parameters are assumed to be known:
 		k                      & \in \mathbb{Z}_{+} &  & \text{number of stations to activate per scenario.}
 	\end{aligned}
 \]
-
-\paragraph{Walking admissibility.}
-For each OD pair $(o,d)\in\Omega$, define the admissible pickup--dropoff station
-pair set
-\[
-	A_{od}
-	=
-	\left\{
-	(j,k)\in J\times J :
-	d^{\mathrm{orig}}_{oj}\le W^{\max},\
-	d^{\mathrm{dest}}_{dk}\le W^{\max}
-	\right\}.
-\]
-The assignment variable $x_{odjks}$ is defined only for $(j,k)\in A_{od}$.
 
 \paragraph{Decision variables.}
 The model has three layers of binary decisions:
@@ -134,7 +141,7 @@ $\underline{q}_{ods} = 0$ acknowledges that many OD pairs are absent on any
 given day, while $\overline{q}_{ods}$ is calibrated from empirical quantiles.
 The aggregate cap $\overline{Q}_s$ encodes the intuition that while demand can
 shift \emph{across} OD pairs, the total number of trips in a time period is
-unlikely to surge simultaneously everywhere --- the population served by the
+unlikely to surge simultaneously everywhere. The population served by the
 system does not change overnight. Together these two components avoid the
 excessive conservatism of a box uncertainty set, where every OD pair could
 independently attain its worst-case value at the same time. Since the bounds are
@@ -262,11 +269,11 @@ the order volume while substantially shrinking the calibrated OD support.
 
 \subsection{Experimental Design}
 
-We calibrate on April 1--3, 2025 and evaluate on May 1--31, 2025 --- an
+We calibrate on April 1--3, 2025 and evaluate on May 1--31, 2025. This is an
 intentionally data-poor split that mimics operators who have not yet observed
-dense historical demand. We fix $l=30$ built stations, a 300 s walking limit,
+dense historical demand. We fix $l=30$ built stations, a 300-second walking limit,
 $\lambda=10$, and vary $k \in \{10,15,20\}$. For the robust model we vary the
-calibration quantile $q \in \{0.90,0.95,0.99\}$.
+calibration quantile $\tau \in \{0.90,0.95,0.99\}$.
 
 \subsection{Uncertainty-Set Calibration}
 
@@ -274,8 +281,7 @@ Scenarios correspond to four time-of-day periods. Lower bounds are fixed at
 $\underline{q}_{ods}=0$; upper bounds $\overline{q}_{ods}$ are empirical
 quantiles of zero-padded daily OD counts; the cap $\overline{Q}_s$ uses the same
 quantile on total period demand. Table~\ref{tab:uncertainty-summary} shows that
-both 40-station variants produce large box-to-cap ratios, with the sparse
-instance starting from much thinner OD coverage per period.
+both 40-station variants produce large box-to-cap ratios. The ratio column reports $\bigl(\sum_{(o,d)}\overline{q}_{ods}\bigr)/\overline{Q}_s$, the ratio of the box worst case to the aggregate cap. Larger values indicate greater conservatism reduction from the cap. The sparse instance starts from much thinner OD coverage per period.
 
 \begin{table}[htbp]
 	\centering
@@ -317,22 +323,22 @@ every $k$; robust variants trade a small mean cost increase for lower variance.
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
+			$k$ & $\tau$ & Model   & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
 			\midrule
-			10  & --   & Nominal & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
-			10  & 0.90 & Robust  & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
-			10  & 0.95 & Robust  & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
-			10  & 0.99 & Robust  & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
+			10  & --     & Nominal & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
+			10  & 0.90   & Robust  & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
+			10  & 0.95   & Robust  & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
+			10  & 0.99   & Robust  & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
 			\midrule
-			15  & --   & Nominal & \textbf{3977.09} & \textbf{4049.94} & 1145.30          & 1119.97          & \textbf{0} \\
-			15  & 0.90 & Robust  & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
-			15  & 0.95 & Robust  & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
-			15  & 0.99 & Robust  & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
+			15  & --     & Nominal & \textbf{3977.09} & \textbf{4049.94} & 1145.30          & 1119.97          & \textbf{0} \\
+			15  & 0.90   & Robust  & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
+			15  & 0.95   & Robust  & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
+			15  & 0.99   & Robust  & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
 			\midrule
-			20  & --   & Nominal & \textbf{3924.95} & \textbf{3984.77} & 1168.67          & 1142.49          & \textbf{0} \\
-			20  & 0.90 & Robust  & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
-			20  & 0.95 & Robust  & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
-			20  & 0.99 & Robust  & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
+			20  & --     & Nominal & \textbf{3924.95} & \textbf{3984.77} & 1168.67          & 1142.49          & \textbf{0} \\
+			20  & 0.90   & Robust  & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
+			20  & 0.95   & Robust  & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
+			20  & 0.99   & Robust  & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
@@ -341,13 +347,13 @@ every $k$; robust variants trade a small mean cost increase for lower variance.
 \subsection{Sparse Setting}
 
 When calibration data is thin, the nominal plan may not cover out-of-sample OD
-pairs. We simulate this by filtering calibration to the top 10\% of OD pairs
+pairs. We simulate this by filtering calibration to the top 10\% of OD pairs by demand frequency
 (389 $\to$ 130), giving the robust model a structural advantage.
 
 \subsection{Sparse-Network Results}
 
 The nominal model fits the sparse training data best but leaves 227 orders
-uncovered at $k=10$ and 14 at $k=15$; robust models achieve complete coverage
+uncovered at $k=10$ and 14 at $k=15$. Robust models achieve complete coverage
 (\Cref{tab:sparse-summary}). At $k=20$ all models cover every order and costs
 converge.
 
@@ -416,8 +422,8 @@ upper tail. This reveals a gap between the expected and actual benefit of
 robustness: the model was designed to hedge against worst-case costs, but in
 practice the recourse function is simple enough that once a station is within
 reach, the assignment cost is similar regardless of which model built the plan.
-The main benefit in the sparse setting is therefore service availability ---
-ensuring that peripheral demand is not left uncovered --- rather than cost
+The main benefit in the sparse setting is therefore service availability,
+specifically ensuring that peripheral demand is not left uncovered, rather than cost
 reduction for served orders.
 
 \begin{figure}[htbp]
@@ -448,8 +454,8 @@ constraints, which may be more efficient when variance reduction is not a goal.
 
 Future work could incorporate richer recourse functions reflecting true
 microtransit operations (vehicle capacity, rebalancing, multi-period dynamics),
-and identify which demand regimes --- such as low-density or spatially shifting
-demand --- most benefit from a robust plan.
+and identify which demand regimes, such as low-density or spatially shifting
+demand, most benefit from a robust plan.
 
 \appendix
 \section{Additional Figures}
