@@ -1,0 +1,30 @@
+# Base configuration for calibration window sweep experiment.
+# Compares NominalModel (3-day training) against RobustTotalDemandCapModel with
+# 3, 7, and 30 days of calibration data.  end_date is set by sweep.toml.
+
+name = "robust_calibration_window"
+
+[data]
+station_file = "Data/zhuzhou_data_40/station.csv"
+order_file   = "Data/zhuzhou_data_40/order.csv"
+segment_file = "Data/zhuzhou_data_40/segment.csv"
+vehicle_file = "Data/zhuzhou_data_40/vehicle.csv"
+
+[model]
+type = "NominalModel"
+
+[parameters]
+scenario_profile    = "four_period"
+start_date          = "2025-04-01"
+end_date            = "2025-04-30"
+backtest_start_date = "2025-05-01"
+backtest_end_date   = "2025-05-31"
+l = 30
+
+[simulation]
+enabled = false
+
+[solver]
+silent             = false
+time_limit_seconds = 3600
+mip_gap            = 0.001

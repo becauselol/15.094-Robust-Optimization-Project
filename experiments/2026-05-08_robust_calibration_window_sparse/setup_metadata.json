@@ -1,0 +1,16 @@
+{
+  "sweep_config": "/home/yongzr/Documents/mit/2026 Spring/15.094_robust_opt/project/experiments/2026-05-08_robust_calibration_window_sparse/sweep.toml",
+  "julia_version": "1.12.4",
+  "total_jobs": 12,
+  "created": "2026-05-08T18:09:07.439",
+  "sweep_parameters": [
+    "k",
+    "in_vehicle_time_weight",
+    "model.type",
+    "max_walking_distance"
+  ],
+  "base_config": "/home/yongzr/Documents/mit/2026 Spring/15.094_robust_opt/project/experiments/2026-05-08_robust_calibration_window_sparse/base.toml",
+  "model_sweep_models": [
+    "RobustTotalDemandCapModel"
+  ]
+}

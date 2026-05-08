@@ -130,29 +130,16 @@ try
         run_opt(smoothed_nominal_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
 
     elseif model_type == "RobustTotalDemandCapModel"
-        demand_q = if haskey(params, "demand_quantile")
-            Float64(params["demand_quantile"])
-        else
-            Float64(get(params, "q_high_quantile", get(params, "Q_cap_quantile", 0.90)))
-        end
-        q_high_q = demand_q
-        Q_cap_q = demand_q
+        demand_q = Float64(get(params, "demand_quantile", 0.90))
 
-        if haskey(params, "Q_cap_quantile") && Float64(params["Q_cap_quantile"]) != demand_q
-            @warn "Ignoring distinct Q_cap_quantile; using shared demand_quantile/q_high_quantile value for both upper-bound and cap calibration" demand_quantile=demand_q Q_cap_quantile=Float64(params["Q_cap_quantile"])
-        end
-        if haskey(params, "q_high_quantile") && Float64(params["q_high_quantile"]) != demand_q
-            @warn "Ignoring distinct q_high_quantile; using shared demand_quantile value for both upper-bound and cap calibration" demand_quantile=demand_q q_high_quantile=Float64(params["q_high_quantile"])
-        end
-
-        @info "Calibrating demand bounds (q_high=$q_high_q, Q_cap=$Q_cap_q)..."
+        @info "Calibrating demand bounds (τ=$demand_q, window=$(start_date)–$(end_date))..."
         q_low, q_hat, B, _ = calibrate_demand_bounds(
             stations, requests, walking_costs,
             start_date, end_date;
-            routing_costs    = routing_costs,
-            profile          = profile_sym,
-            q_high_quantile  = q_high_q,
-            Q_cap_quantile   = Q_cap_q,
+            routing_costs   = routing_costs,
+            profile         = profile_sym,
+            q_high_quantile = demand_q,
+            Q_cap_quantile  = demand_q,
         )
 
         robust_model = RobustTotalDemandCapModel(

@@ -1,0 +1,26 @@
+# Sweep parameters for calibration window experiment.
+# 01_setup.jl takes the Cartesian product of all top-level arrays, then multiplies
+# each combination by the model-specific params in [model_sweep.<ModelType>].
+#
+# All models train on April 1-30 (end_date from base.toml).
+# RobustTotalDemandCapModel additionally sweeps τ ∈ {0.90, 0.95, 0.99}.
+#
+# With 30 days of data, the empirical quantile indices are:
+#   τ=0.90 → ceil(0.90 × 30) = 27th order statistic
+#   τ=0.95 → ceil(0.95 × 30) = 29th order statistic
+#   τ=0.99 → ceil(0.99 × 30) = 30th order statistic (= max)
+# All are actual observed integer counts.
+
+"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+
+k                      = [10, 15, 20]
+in_vehicle_time_weight = [10.0]
+max_walking_distance   = [300.0]
+
+# Total jobs:
+#   NominalModel:              3 k = 3
+#   RobustTotalDemandCapModel: 3 τ × 3 k = 9
+#   Total = 12
+
+[model_sweep.RobustTotalDemandCapModel]
+demand_quantile = [0.90, 0.95, 0.99]

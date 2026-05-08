@@ -1,0 +1,29 @@
+# Base configuration for calibration window sweep experiment — sparse dataset.
+# Identical to robust_calibration_window but uses zhuzhou_data_40_sparse_v3.
+
+name = "robust_calibration_window_sparse"
+
+[data]
+station_file = "Data/zhuzhou_data_40_sparse_v3/station.csv"
+order_file   = "Data/zhuzhou_data_40_sparse_v3/order.csv"
+segment_file = "Data/zhuzhou_data_40_sparse_v3/segment.csv"
+vehicle_file = "Data/zhuzhou_data_40_sparse_v3/vehicle.csv"
+
+[model]
+type = "NominalModel"
+
+[parameters]
+scenario_profile    = "four_period"
+start_date          = "2025-04-01"
+end_date            = "2025-04-30"
+backtest_start_date = "2025-05-01"
+backtest_end_date   = "2025-05-31"
+l = 30
+
+[simulation]
+enabled = false
+
+[solver]
+silent             = false
+time_limit_seconds = 3600
+mip_gap            = 0.001

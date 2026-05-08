@@ -1,0 +1,23 @@
+# Sweep parameters for calibration window experiment (sparse dataset).
+# All models train on April 1-30 (end_date from base.toml).
+# RobustTotalDemandCapModel additionally sweeps τ ∈ {0.90, 0.95, 0.99}.
+#
+# With 30 days of data, the empirical quantile indices are:
+#   τ=0.90 → ceil(0.90 × n) where n=days in period (up to 30)
+#   τ=0.95 → ceil(0.95 × n)
+#   τ=0.99 → ceil(0.99 × n) — near max
+# All pick actual observed integer counts, preserving LP relaxation integrality.
+
+"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+
+k                      = [10, 15, 20]
+in_vehicle_time_weight = [10.0]
+max_walking_distance   = [300.0]
+
+# Total jobs:
+#   NominalModel:              3 k = 3
+#   RobustTotalDemandCapModel: 3 τ × 3 k = 9
+#   Total = 12
+
+[model_sweep.RobustTotalDemandCapModel]
+demand_quantile = [0.90, 0.95, 0.99]

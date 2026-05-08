@@ -29,7 +29,7 @@
 
 % ── Title ─────────────────────────────────────────────────────────────────────
 \title{%
-  Budget-Robust Station Selection for Microtransit\\
+  Robust Station Selection for Microtransit\\
   Under Demand Uncertainty%
 }
 \author{Gabriel Yong}
@@ -48,15 +48,18 @@ However, having a fully flexible microtransit system is overly complex and reduc
 While the VBS selection is able to adapt between service periods within the day (morning, afternoon, evening, night), the selection for each service period should be robust against shifts in the demand patterns. Within a service period, demand can fluctuate from day to day and the system should still provide a relatively similar experience across each day. We thus address this problem with a two-stage robust model where origin-destination (OD) demand varies within a budgeted uncertainty set.
 
 \section{Model}
+
+We formulate VBS selection as a two-stage mixed-integer program. The first stage designates a fixed set of $l$ stations shared across all service periods. The second stage activates $k$ of these per period, and OD pair assignments are used to evaluate the demand-weighted walking and routing cost of each activation plan. We first present the nominal model assuming known demand, then characterise the demand uncertainty set, and finally derive the robust counterpart.
+
 \subsection{Nominal Model}
 
 \paragraph{Sets.}
 \[
 	\begin{aligned}
-		J      & &  & \text{set of candidate stations,}              \\
-		S      & &  & \text{set of service scenarios,}               \\
-		\Omega & &  & \text{set of origin-destination pairs,}        \\
-		A_{od} & &  & \text{admissible pickup--dropoff station pairs for OD pair }(o,d),
+		J      &  &  & \text{set of candidate stations,}                                  \\
+		S      &  &  & \text{set of service scenarios,}                                   \\
+		\Omega &  &  & \text{set of origin-destination pairs,}                            \\
+		A_{od} &  &  & \text{admissible pickup--dropoff station pairs for OD pair }(o,d),
 	\end{aligned}
 \]
 where
@@ -81,7 +84,7 @@ The following parameters are assumed to be known:
 		c_{jk}                 & \ge 0              &  & \text{vehicle travel cost from station }j\text{ to station }k,     \\
 		\lambda                & \ge 0              &  & \text{weight on vehicle travel cost relative to walking distance,} \\
 		W^{\max}               & \ge 0              &  & \text{maximum walking distance allowed for a passenger,}           \\
-		l                      & \in \mathbb{Z}_{+} &  & \text{number of stations to build,}                                \\
+		l                      & \in \mathbb{Z}_{+} &  & \text{number of stations to select,}                               \\
 		k                      & \in \mathbb{Z}_{+} &  & \text{number of stations to activate per scenario.}
 	\end{aligned}
 \]
@@ -89,7 +92,7 @@ The following parameters are assumed to be known:
 \paragraph{Decision variables.}
 The model has three layers of binary decisions:
 \begin{align*}
-	y_j       & = \begin{cases} 1 & \text{station } j \text{ is built (long-run infrastructure decision)} \\ 0 & \text{otherwise} \end{cases}                                                \\[6pt]
+	y_j       & = \begin{cases} 1 & \text{station } j \text{ is selected } \\ 0 & \text{otherwise} \end{cases}                                                                               \\[6pt]
 	z_{js}    & = \begin{cases} 1 & \text{station } j \text{ is activated and available for service in scenario } s \\ 0 & \text{otherwise} \end{cases}                                      \\[6pt]
 	x_{odjks} & = \begin{cases} 1 & \text{OD pair } (o,d) \text{ is assigned to pickup station } j \text{ and dropoff station } k \text{ in scenario } s \\ 0 & \text{otherwise} \end{cases}
 \end{align*}
@@ -99,11 +102,11 @@ The objective minimizes total demand-weighted travel cost across all scenarios:
 \begin{equation}
 	\min_{x,y,z}
 	\sum_{s \in S} \sum_{(o,d) \in \Omega} \sum_{(j,k)\in A_{od}}
-	q_{ods}\,
-	\underbrace{\bigl(d^{\mathrm{orig}}_{oj} + d^{\mathrm{dest}}_{dk} + \lambda\,c_{jk}\bigr)}_{a_{odjks}}\,
-	x_{odjks}.
+	q_{ods}\,a_{odjks}\,x_{odjks}
 	\label{eq:nominal-obj}
 \end{equation}
+
+where $a_{odjks} = d^{\mathrm{orig}}_{oj} + d^{\mathrm{dest}}_{dk} + \lambda\,c_{jk}$
 
 \paragraph{Constraints.}
 The constraints enforce the two-stage structure:
@@ -117,41 +120,61 @@ The constraints enforce the two-stage structure:
 Constraint~\eqref{eq:assign} requires every OD pair to be assigned to exactly
 one admissible station pair per scenario. Constraints~\eqref{eq:active} ensure
 that assignments can only use active stations. Constraint~\eqref{eq:build}
-requires that a station must be built before it can be activated.
-Constraint~\eqref{eq:budget} fixes the number of built stations to $l$ and the
+requires that a station must be selected before it can be activated.
+Constraint~\eqref{eq:budget} fixes the number of selected stations to $l$ and the
 number of active stations per scenario to $k$.
 
-\subsection{Demand Uncertainty}
+\subsection{Robust Counterpart}
 
-\subsubsection{Uncertainty Set}
+The nominal model assumes demand $q_{ods}$ is known exactly, but in practice it varies from day to day. To guard against this, we require the station selection to perform well under any demand realisation within a budget uncertainty set.
+
+\subsubsection{Demand Uncertainty}
 
 For each period $s$, demand lies in
 \begin{equation}
 	\cU_s = \Bigl\{
 	q_s :
 	\underline{q}_{ods} \le q_{ods} \le \overline{q}_{ods}\ \forall (o,d),\;
-	\sum_{(o,d)\in\Omega} q_{ods} \le \overline{Q}_s
+	\sum_{(o,d)\in\Omega} q_{ods} \le \overline{Q}_s, \; q_{ods} \in \mathbb{Z}_{+} \forall (o, d)
 	\Bigr\}.
 	\label{eq:uset}
 \end{equation}
+
 The per-OD bounds $[\underline{q}_{ods}, \overline{q}_{ods}]$ reflect the
 observation that demand for a given OD pair fluctuates around a historical
-range from day to day, but rarely departs dramatically from it. Setting
-$\underline{q}_{ods} = 0$ acknowledges that many OD pairs are absent on any
-given day, while $\overline{q}_{ods}$ is calibrated from empirical quantiles.
-The aggregate cap $\overline{Q}_s$ encodes the intuition that while demand can
-shift \emph{across} OD pairs, the total number of trips in a time period is
-unlikely to surge simultaneously everywhere. The population served by the
-system does not change overnight. Together these two components avoid the
-excessive conservatism of a box uncertainty set, where every OD pair could
-independently attain its worst-case value at the same time. Since the bounds are
-integral, the inner maximization has an integral optimal extreme point, so
-integrality can be dropped without changing the worst-case value.
+range from day to day. There is also a aggregate limit defined by $\overline{Q}_s.$ which represents the idea that while demand can shift across OD pairs, the total number of trips within a time period is unlikely to increase beyond the population limit. Together, this uncertainty set is able to accurately represent worst case demand shifts over each scenario.
+
+One concern is that since passenger demand is integral, this uncertainty set might be difficult to optimize over, but since the bounds $\underline{q}_{ods}, \overline{q}_{ods}, \overline{Q}_{s}$ should be integer values, the extreme points of the linear relaxation of the uncertainty set will also be integer. Thus, integrality can be dropped from the uncertainty set without changing the worst-case value.
 
 \subsubsection{Robust Objective and Recourse}
 
-Given the uncertainty set \eqref{eq:uset}, the robust objective protects against
-the worst-case demand realization in each scenario:
+Given fixed activation decisions $z_s$ and realized demand $q_s$, the optimal
+assignment cost is captured by the recourse value:
+\begin{equation}
+	\Phi_s(z_s,q_s)
+	:=
+	\min_{x \in \{0,1\}}
+	\sum_{(o,d)\in\Omega}
+	q_{ods}
+	\left(\sum_{(j,k)\in A_{od}}
+	a_{odjks}\,x_{odjks}\right)
+	\label{eq:recourse-value}
+\end{equation}
+subject to \eqref{eq:assign}--\eqref{eq:active}. Since this inner problem
+decomposes by OD pair, letting
+\[
+	m_{ods}(z_s) = \min_{\substack{(j,k)\in A_{od} \\ z_{js}=1,\, z_{ks}=1}} a_{odjks}
+\]
+denote the cheapest admissible station pair where both pickup and dropoff are
+active in scenario $s$, the recourse value simplifies to
+\begin{equation}
+	\Phi_s(z_s,q_s)
+	=
+	\sum_{(o,d)\in\Omega} q_{ods}\,m_{ods}(z_s).
+	\label{eq:recourse-separable}
+\end{equation}
+The robust objective then minimizes the worst-case total cost across all
+scenarios:
 \begin{equation}
 	\min_{y,z}
 	\sum_{s \in S}
@@ -159,43 +182,27 @@ the worst-case demand realization in each scenario:
 	\Phi_s(z_s,q_s),
 	\label{eq:robust-obj}
 \end{equation}
-subject to \eqref{eq:build}--\eqref{eq:budget}. The recourse value
-$\Phi_s(z_s,q_s)$ is the optimal assignment cost for scenario $s$ given fixed
-activated stations $z_s$ and realized demand $q_s$:
-\begin{equation}
-	\Phi_s(z_s,q_s)
-	:=
-	\min_{x \ge 0}
-	\sum_{(o,d)\in\Omega}\sum_{(j,k)\in A_{od}}
-	q_{ods}\,a_{odjks}\,x_{odjks}
-	\label{eq:recourse-value}
-\end{equation}
-subject to \eqref{eq:assign}--\eqref{eq:active}. The assignment decision $x$ is
-a \emph{recourse} decision: it is made after demand is observed and adapts to
-the realized $q_s$. Since this inner problem decomposes by OD pair, letting
-$m_{ods}(z_s)$ denote the minimum assignment cost for pair $(o,d)$ given $z_s$,
-the recourse value simplifies to
-\begin{equation}
-	\Phi_s(z_s,q_s)
-	=
-	\sum_{(o,d)\in\Omega} q_{ods}\,m_{ods}(z_s).
-	\label{eq:recourse-separable}
-\end{equation}
-This separability is key: it means the inner maximization over $q_s \in \cU_s$
-is a linear program in $q_s$ for fixed $z_s$, which can be dualized to yield a
-tractable reformulation.
+subject to \eqref{eq:build}--\eqref{eq:budget}. As \eqref{eq:recourse-separable}
+shows, $\Phi_s$ is linear in $q_s$ for fixed $z_s$, so the inner maximisation
+over $q_s \in \cU_s$ is a linear program in $q_s$ and can be dualized to yield
+a tractable reformulation.
 
-\subsection{Derivation of the Robust Counterpart}
+\subsubsection{Derivation}
 
 Introducing epigraph variables $\eta_s$, the robust problem becomes
 \begin{equation}
 	\min_{y,z,\eta} \sum_{s} \eta_s
-	\quad \text{s.t.} \quad
-	\eta_s \ge \max_{q_s \in \cU_s} \Phi_s(z_s,q_s) \quad \forall s.
 	\label{eq:robust-epi}
 \end{equation}
+subject to
+\begin{align*}
+	 & \eta_s \ge \max_{q_s \in \cU_s} \Phi_s(z_s,q_s) &  & \forall s,   \\
+	 & z_{js} \le y_j                                  &  & \forall j,s, \\
+	 & \sum_j y_j = l,\quad \sum_j z_{js} = k          &  & \forall s,   \\
+	 & y_j, z_{js} \in \{0,1\}.
+\end{align*}
 
-Substituting \eqref{eq:recourse-separable} and dualizing the inner LP gives dual
+Substituting \eqref{eq:recourse-separable} and dualizing the inner problem gives dual
 variables $\alpha_s \ge 0$, $\beta_{ods} \ge 0$, $\gamma_{ods} \ge 0$ such that
 \begin{align}
 	 & \eta_s \ge \overline{Q}_s\,\alpha_s
@@ -210,7 +217,7 @@ variables $\alpha_s \ge 0$, $\beta_{ods} \ge 0$, $\gamma_{ods} \ge 0$ such that
 \end{align}
 
 Expanding $m_{ods}(z_s)$ with the assignment variables $x$ and eliminating
-$\eta_s$ (tight at optimality) yields the final MILP:
+$\eta_s$ yields the final MILP:
 \begin{equation}
 	\min_{x,y,z,\alpha,\beta,\gamma}
 	\sum_s \overline{Q}_s\,\alpha_s
@@ -240,15 +247,14 @@ subject to
 	 &                                                                                       & \forall s,
 	\label{eq:robust-budget}
 \end{align}
-with $x_{odjks},\alpha_s,\beta_{ods},\gamma_{ods}\ge 0$ and $y_j, z_{js} \in \{0,1\}$.
+with $\alpha_s,\beta_{ods},\gamma_{ods}\ge 0$ and $x_{odjks} ,y_j, z_{js} \in \{0,1\}$.
 
 \section{Experiments}
 
 We use operational data from a microtransit system in Zhuzhou, China.
-Table~\ref{tab:data-summary} describes the three dataset variants; the sparse
-40-station instance is used for the main comparison because it preserves most of
-the order volume while substantially shrinking the calibrated OD support.
-
+The full network has 84 stations, but for scalability we reduce to the 40 most
+popular stations by OD request volume. Because these stations account for the
+majority of demand, the reduction in order coverage is minimal.
 \begin{table}[htbp]
 	\centering
 	\caption{Dataset variants for the April calibration and May backtest windows.}
@@ -267,21 +273,39 @@ the order volume while substantially shrinking the calibrated OD support.
 	\end{tabular}
 \end{table}
 
+Table~\ref{tab:data-summary} describes the three variants. The sparse variant is constructed by randomly reassigning demand counts from the least popular OD pairs onto the most popular ones, concentrating all calibration demand onto the top 10\% of OD pairs (389 $\to$ 130). This mimics a data-poor setting where granular OD-level observations are unavailable and demand is only recorded at an aggregate level.
+
 \subsection{Experimental Design}
 
-We calibrate on April 1--3, 2025 and evaluate on May 1--31, 2025. This is an
-intentionally data-poor split that mimics operators who have not yet observed
-dense historical demand. We fix $l=30$ built stations, a 300-second walking limit,
+We optimize station selection over data on April 1--3, 2025 and evaluate on May 1--31, 2025. We fix $l=30$ selected stations, a 300-second walking limit,
 $\lambda=10$, and vary $k \in \{10,15,20\}$. For the robust model we vary the
 calibration quantile $\tau \in \{0.90,0.95,0.99\}$.
 
 \subsection{Uncertainty-Set Calibration}
 
-Scenarios correspond to four time-of-day periods. Lower bounds are fixed at
-$\underline{q}_{ods}=0$; upper bounds $\overline{q}_{ods}$ are empirical
-quantiles of zero-padded daily OD counts; the cap $\overline{Q}_s$ uses the same
-quantile on total period demand. Table~\ref{tab:uncertainty-summary} shows that
-both 40-station variants produce large box-to-cap ratios. The ratio column reports $\bigl(\sum_{(o,d)}\overline{q}_{ods}\bigr)/\overline{Q}_s$, the ratio of the box worst case to the aggregate cap. Larger values indicate greater conservatism reduction from the cap. The sparse instance starts from much thinner OD coverage per period.
+Scenarios correspond to four time-of-day periods: morning (06--10h), afternoon
+(10--15h), evening (15--20h), and night (20--24h).
+
+\paragraph{Lower bounds $\underline{q}_{ods}$:}
+$\underline{q}_{ods}=0$ for all OD pairs, since many pairs are absent on any
+given day.
+
+\paragraph{Upper bounds $\overline{q}_{ods}$:}
+Every OD pair in the full network receives a strictly positive upper bound
+$\overline{q}_{ods}$. For pairs observed at least once in the calibration
+window, $\overline{q}_{ods}$ is the $\tau$-quantile of daily counts, treating
+days with no demand for that pair as zero. For pairs with no observed orders,
+$\overline{q}_{ods}$ is imputed via a rank-1 gravity model:
+$\overline{q}_{ods} = \lceil O_s(o)\cdot D_s(d)/Q_s \rceil$, where $O_s(o)$
+and $D_s(d)$ are the total origin and destination flows from observed pairs and
+$Q_s$ is the total observed demand in period $s$. For stations that appear in
+no orders at all, the gravity estimate falls back to a floor value equal to the
+minimum positive $\overline{q}$ observed across all periods.
+
+\paragraph{Aggregate cap $\overline{Q}_s$:}
+$\overline{Q}_s$ is the $\tau$-quantile of total period demand across
+calibration days.
+
 
 \begin{table}[htbp]
 	\centering
@@ -290,21 +314,30 @@ both 40-station variants produce large box-to-cap ratios. The ratio column repor
 	\small
 	\begin{tabular}{lcccc}
 		\toprule
-		Period    & Sampled ODs & Sparse ODs & Sampled ratio & Sparse ratio \\
+		Period              & Sampled ODs & Sparse ODs & Sampled ratio & Sparse ratio \\
 		\midrule
-		Morning   & 94          & 80         & 17.42         & 17.46        \\
-		Afternoon & 169         & 103        & 7.12          & 7.28         \\
-		Evening   & 249         & 122        & 2.86          & 2.97         \\
-		Night     & 120         & 87         & 13.16         & 13.31        \\
+		Morning (06--10h)   & 94          & 80         & 17.42         & 17.46        \\
+		Afternoon (10--15h) & 169         & 103        & 7.12          & 7.28         \\
+		Evening (15--20h)   & 249         & 122        & 2.86          & 2.97         \\
+		Night (20--24h)     & 120         & 87         & 13.16         & 13.31        \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
+Table~\ref{tab:uncertainty-summary} shows that both 40-station variants produce
+large box-to-cap ratios, confirming that the aggregate cap $\overline{Q}_s$
+substantially tightens the uncertainty set relative to a pure box. Without it,
+the adversary could simultaneously push every OD pair to its upper bound, which
+in the morning period corresponds to a scenario 17 times the observed total
+demand, yielding an overly conservative solution.
+
 \section{Results}
 
-Both experiments evaluate on 30,100 May orders from the full-OD dataset (949 OD
-pairs). For the sparse experiment this is a distributional shift: models were
-calibrated on 130 OD pairs while the test set spans all 949.
+Both experiments report results on the full-OD dataset (949 OD pairs), covering
+both the April calibration period (2,560 orders) and the May test period (30,100
+orders). For the sparse experiment, this means evaluating on OD pairs not seen
+during calibration: models were trained on 130 OD pairs while evaluation spans
+all 949.
 
 \subsection{Sampled-Network Results}
 
@@ -343,12 +376,6 @@ every $k$; robust variants trade a small mean cost increase for lower variance.
 		\end{tabular}%
 	}
 \end{table}
-
-\subsection{Sparse Setting}
-
-When calibration data is thin, the nominal plan may not cover out-of-sample OD
-pairs. We simulate this by filtering calibration to the top 10\% of OD pairs by demand frequency
-(389 $\to$ 130), giving the robust model a structural advantage.
 
 \subsection{Sparse-Network Results}
 
@@ -389,7 +416,7 @@ converge.
 	}
 \end{table}
 
-All three models build the same 30 stations (see \Cref{fig:built-k10} in the
+All three models select the same 30 stations (see \Cref{fig:built-k10} in the
 appendix), so the divergence is entirely in which $k$ stations are activated per
 period. \Cref{fig:activations-morning} shows the morning period at $k=10$: the
 nominal model places all 10 activations in the high-demand core near the centre
@@ -411,7 +438,7 @@ orders.
 		\includegraphics[width=0.9\textwidth]{../presentation/img/activation_robust_q095_period_1_k10.png}
 		\caption{Robust ($q=0.95$)}
 	\end{subfigure}
-	\caption{Morning-period activations for $k=10$. Filled = active; hollow = built but inactive. Nominal clusters all activations in the high-demand core; robust spreads them across the network.}
+	\caption{Morning-period activations for $k=10$. Filled = active; hollow = selected but inactive. Nominal clusters all activations in the high-demand core; robust spreads them across the network.}
 	\label{fig:activations-morning}
 \end{figure}
 
@@ -421,7 +448,7 @@ largely overlap, with robust variants shifted only slightly to the right in the
 upper tail. This reveals a gap between the expected and actual benefit of
 robustness: the model was designed to hedge against worst-case costs, but in
 practice the recourse function is simple enough that once a station is within
-reach, the assignment cost is similar regardless of which model built the plan.
+reach, the assignment cost is similar regardless of which model selected the stations.
 The main benefit in the sparse setting is therefore service availability,
 specifically ensuring that peripheral demand is not left uncovered, rather than cost
 reduction for served orders.
@@ -463,14 +490,14 @@ demand, most benefit from a robust plan.
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_built_k10.png}
-	\caption{Built station selections for $k=10$. Coloured dots = built (30 of 40); gray = not built. All three models select the same set of 30 stations.}
+	\caption{Selected stations for $k=10$. Coloured dots = selected (30 of 40); gray = not selected. All three models select the same set of 30 stations.}
 	\label{fig:built-k10}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_activations_k10.png}
-	\caption{Per-period activations for $k=10$ across all four time-of-day scenarios. Filled = active; hollow = built but inactive; gray = not built.}
+	\caption{Per-period activations for $k=10$ across all four time-of-day scenarios. Filled = active; hollow = selected but inactive; gray = not selected.}
 	\label{fig:activations-all}
 \end{figure}
 
