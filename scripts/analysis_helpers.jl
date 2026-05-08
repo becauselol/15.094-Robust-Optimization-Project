@@ -94,7 +94,7 @@ function collect_runs(exp_dir::String)
             "model_type" => String(model_type),
         )
         key = (Int(k), Float64(lam))
-        if model_type == "NominalModel"
+        if model_type in ("NominalModel", "NominalFeasibleModel")
             push!(get!(nominal_by_key, key, Dict{String, Any}[]), record)
         elseif model_type == "RobustTotalDemandCapModel"
             quantile = get(record, "demand_quantile", nothing)

@@ -6,14 +6,14 @@ using .AnalysisHelpers
 
 function model_order(model_type::AbstractString)
     model_type == "NominalModel" && return 1
-    model_type == "SmoothedNominalModel" && return 2
+    model_type == "NominalFeasibleModel" && return 2
     model_type == "RobustTotalDemandCapModel" && return 3
     return 99
 end
 
 function model_label(model_type::AbstractString)
     model_type == "NominalModel" && return "Nominal"
-    model_type == "SmoothedNominalModel" && return "Smoothed nominal"
+    model_type == "NominalFeasibleModel" && return "Nominal (feasible)"
     model_type == "RobustTotalDemandCapModel" && return "Robust"
     return model_type
 end
@@ -53,9 +53,6 @@ function build_rows(exp_dir::String)
             k = Int(k),
             in_vehicle_time_weight = lambda_val,
             demand_quantile = get(metrics, "demand_quantile", missing),
-            smoothing_tau = get(metrics, "smoothing_tau", missing),
-            pseudo_demand_fraction = get(metrics, "pseudo_demand_fraction", missing),
-            gravity_uniform_mix = get(metrics, "gravity_uniform_mix", missing),
             in_sample_objective = get(metrics, "in_sample_objective", missing),
             april_n_days = april_n_days > 0 ? april_n_days : missing,
             april_mean_cost = april_mean,

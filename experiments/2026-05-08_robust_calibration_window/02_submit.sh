@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --array=1-12
+#SBATCH --array=1-15
 #SBATCH --time=01:00:00
 #SBATCH -o experiments/2026-05-08_robust_calibration_window/slurm_logs/job-%A_%a.out
 #SBATCH -e experiments/2026-05-08_robust_calibration_window/slurm_logs/job-%A_%a.err

@@ -8,10 +8,10 @@ Produces two figures:
   2. <output_dir>/station_selections_activations.png — 3×4 panels, activations per period
 
 Usage:
-    python scripts/plot_station_selections.py <exp_dir> <k> [output_dir]
+    python scripts/plot_station_selections.py <exp_dir> <k> [output_dir] [quantile]
 
 Looks for runs with the given k and models:
-  NominalModel, SmoothedNominalTwoStageODModel (q=None), RobustTotalDemandCapModel (q=0.95)
+  NominalModel (q=None), NominalFeasibleModel (q=None), RobustTotalDemandCapModel (q=0.95 default)
 """
 
 from __future__ import annotations
@@ -34,17 +34,17 @@ PERIOD_LABELS = {
 PERIODS = ["period_1", "period_2", "period_3", "period_4"]
 
 MODEL_COLORS = {
-    "Nominal":          "#1f77b4",   # blue
-    "Smoothed nominal": "#2ca02c",   # green
-    "Robust q=0.95":    "#d62728",   # red
+    "Nominal":            "#1f77b4",   # blue
+    "Nominal (feasible)": "#ff7f0e",   # orange
+    "Robust q=0.95":      "#d62728",   # red
 }
 
-MODEL_ORDER = ["Nominal", "Smoothed nominal", "Robust q=0.95"]
+MODEL_ORDER = ["Nominal", "Nominal (feasible)", "Robust q=0.95"]
 
 MODEL_SLUG = {
-    "Nominal":          "nominal",
-    "Smoothed nominal": "smoothed",
-    "Robust q=0.95":    "robust_q095",
+    "Nominal":            "nominal",
+    "Nominal (feasible)": "feasible",
+    "Robust q=0.95":      "robust_q095",
 }
 
 
@@ -154,7 +154,7 @@ def _scatter_stations(ax, all_stations, built, active, color):
 
 def plot_built(model_data: dict, k: int, out_path: Path) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
-    fig.suptitle(f"Built station selections — $k={k}$ (30 of 40 built)",
+    fig.suptitle(f"Built station selections — $k={k}$",
                  fontsize=12, y=1.01)
 
     for ax, label in zip(axes, MODEL_ORDER):
@@ -166,7 +166,7 @@ def plot_built(model_data: dict, k: int, out_path: Path) -> None:
 
     # legend
     legend_handles = [
-        mpatches.Patch(facecolor="#dddddd", edgecolor="none", label="Not built (10)"),
+        mpatches.Patch(facecolor="#dddddd", edgecolor="none", label=f"Not built ({40 - k})"),
         mpatches.Patch(facecolor="#555555", edgecolor="none", label="Built (colour per model)"),
     ]
     fig.legend(handles=legend_handles, loc="lower center", ncol=2,
@@ -206,8 +206,8 @@ def plot_activations(model_data: dict, k: int, out_path: Path) -> None:
         mpatches.Patch(facecolor="#aaaaaa", edgecolor="none", label="Built, inactive"),
         mpatches.Patch(facecolor=MODEL_COLORS["Nominal"],
                        edgecolor="white", label="Active (Nominal)"),
-        mpatches.Patch(facecolor=MODEL_COLORS["Smoothed nominal"],
-                       edgecolor="white", label="Active (Smoothed nominal)"),
+        mpatches.Patch(facecolor=MODEL_COLORS["Nominal (feasible)"],
+                       edgecolor="white", label="Active (Nominal (feasible))"),
         mpatches.Patch(facecolor=MODEL_COLORS["Robust q=0.95"],
                        edgecolor="white", label="Active (Robust q=0.95)"),
     ]
@@ -235,8 +235,9 @@ def plot_built_individual(model_data: dict, k: int, out_dir: Path) -> None:
         _scatter_stations(ax, d["stations"], d["built"], d["built"], color)
         n_unique = len(d["built"])
         ax.set_title(f"{label} — built stations  ($k={k}$, {n_unique} built)", fontsize=10)
+        n_total = len(d["stations"])
         legend_handles_m = [
-            mpatches.Patch(facecolor="#dddddd", edgecolor="none", label=f"Not built ({40 - n_unique})"),
+            mpatches.Patch(facecolor="#dddddd", edgecolor="none", label=f"Not built ({n_total - n_unique})"),
             mpatches.Patch(facecolor=color, edgecolor="white", label=f"Built ({n_unique})"),
         ]
         ax.legend(handles=legend_handles_m, loc="lower right", fontsize=8.5,
@@ -283,7 +284,7 @@ def plot_activations_individual(model_data: dict, k: int, out_dir: Path) -> None
 
 def main() -> None:
     if len(sys.argv) < 3:
-        print("Usage: python scripts/plot_station_selections.py <exp_dir> <k> [output_dir]",
+        print("Usage: python scripts/plot_station_selections.py <exp_dir> <k> [output_dir] [quantile]",
               file=sys.stderr)
         sys.exit(1)
 
@@ -291,21 +292,24 @@ def main() -> None:
     k = int(sys.argv[2])
     out_dir = Path(sys.argv[3]) if len(sys.argv) > 3 \
               else exp_dir / "analysis" / "station_selections"
+    robust_q = float(sys.argv[4]) if len(sys.argv) > 4 else 0.95
+    robust_label = f"Robust q={robust_q:.2f}".rstrip("0").rstrip(".")
+
+    # Remap MODEL_ORDER/MODEL_COLORS/MODEL_SLUG for the chosen quantile label
+    global MODEL_ORDER, MODEL_COLORS, MODEL_SLUG
+    MODEL_ORDER = ["Nominal", "Nominal (feasible)", robust_label]
+    MODEL_COLORS[robust_label] = MODEL_COLORS.pop("Robust q=0.95", "#d62728")
+    MODEL_SLUG[robust_label] = f"robust_q{int(robust_q * 100):03d}"
 
     targets = [
-        ("Nominal",          "NominalModel",                    None),
-        ("Smoothed nominal", "SmoothedNominalTwoStageODModel",  None),
-        ("Robust q=0.95",    "RobustTotalDemandCapModel",       0.95),
+        ("Nominal",            "NominalModel",              None),
+        ("Nominal (feasible)", "NominalFeasibleModel",      None),
+        (robust_label,         "RobustTotalDemandCapModel", robust_q),
     ]
-
-    # also try alternative class name stored in metrics
-    alt_smoothed = "SmoothedNominalModel"
 
     model_data = {}
     for label, mtype, q in targets:
         run = find_run(exp_dir, mtype, k, q)
-        if run is None and mtype == "SmoothedNominalTwoStageODModel":
-            run = find_run(exp_dir, alt_smoothed, k, q)
         if run is None:
             print(f"WARNING: could not find run for {label} (k={k}, q={q})", file=sys.stderr)
             continue

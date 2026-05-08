@@ -8,7 +8,7 @@ using StationSelection
 using MicroTransitSimulator
 
 function backtest_model_type(model_type::String)::String
-    if model_type in ("NominalModel", "SmoothedNominalModel", "RobustTotalDemandCapModel")
+    if model_type in ("NominalModel", "SmoothedNominalModel", "NominalFeasibleModel", "RobustTotalDemandCapModel")
         return "ClusteringTwoStageODModel"
     end
     error("No backtest transform mapping defined for model_type=$model_type")
