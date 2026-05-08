@@ -11,7 +11,7 @@
 #   τ=0.99 → ceil(0.99 × 30) = 30th order statistic (= max)
 # All are actual observed integer counts.
 
-"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+"model.type" = ["NominalModel", "NominalFeasibleModel", "RobustTotalDemandCapModel"]
 
 k                      = [10, 15, 20]
 in_vehicle_time_weight = [10.0]

@@ -129,6 +129,14 @@ try
         )
         run_opt(smoothed_nominal_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
 
+    elseif model_type == "NominalFeasibleModel"
+        nominal_feasible_model = NominalFeasibleModel(
+            k, l;
+            in_vehicle_time_weight = lambda_val,
+            max_walking_distance   = max_walking_distance,
+        )
+        run_opt(nominal_feasible_model, data; optimizer_env=gurobi_env, silent=solver_silent, mip_gap=solver_mip_gap)
+
     elseif model_type == "RobustTotalDemandCapModel"
         demand_q = Float64(get(params, "demand_quantile", 0.90))
 

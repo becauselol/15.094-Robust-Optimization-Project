@@ -8,7 +8,7 @@
 #   τ=0.99 → ceil(0.99 × n) — near max
 # All pick actual observed integer counts, preserving LP relaxation integrality.
 
-"model.type" = ["NominalModel", "RobustTotalDemandCapModel"]
+"model.type" = ["NominalModel", "NominalFeasibleModel", "RobustTotalDemandCapModel"]
 
 k                      = [10, 15, 20]
 in_vehicle_time_weight = [10.0]
