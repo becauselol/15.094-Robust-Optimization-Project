@@ -12,7 +12,8 @@ using StationSelection
 
 export PROJECT_ROOT, iter_metric_files, load_metrics, collect_runs, pair_runs, safe_slug
 export build_cost_inputs, load_active_schedule, best_feasible_pair_cost
-export compute_order_costs, compute_order_costs_by_scenario, get_realized_walking_violation_rate
+export compute_order_costs, compute_order_costs_by_scenario, compute_order_costs_by_scenario_from_df
+export get_realized_walking_violation_rate
 export theoretical_costs_by_scenario, theoretical_walking_violation_rates
 export get_order_cost_total, get_order_cost_mean, get_order_cost_std, get_daily_cost_std
 export get_od_unweighted_metrics, get_theoretical_od_metrics
@@ -43,6 +44,32 @@ function safe_slug(value::AbstractString)
         end
     end
     return String(take!(io))
+end
+
+function get_full_station_path(run_dir::String)
+    cluster_path = joinpath(run_dir, "backtest", "cluster_stations.csv")
+    return isfile(cluster_path) ? cluster_path : joinpath(run_dir, "backtest", "simulation_inputs", "station.csv")
+end
+
+function load_station_dataframe(station_path::String)
+    df = CSV.read(station_path, DataFrame)
+    cols = Set(propertynames(df))
+
+    if :station_id in cols
+        rename!(df, :station_id => :id)
+    end
+
+    if (:station_lon in cols) && (:station_lat in cols)
+        wgs_coords = [bd09_to_wgs84(Float64(df.station_lon[i]), Float64(df.station_lat[i])) for i in 1:nrow(df)]
+        df.station_lon = first.(wgs_coords)
+        df.station_lat = last.(wgs_coords)
+        rename!(df, :station_lon => :lon, :station_lat => :lat)
+    end
+
+    (:id in propertynames(df) && :lon in propertynames(df) && :lat in propertynames(df)) ||
+        error("station file must contain either (:id,:lon,:lat) or (:station_id,:station_lon,:station_lat): $station_path")
+
+    return df
 end
 
 function collect_runs(exp_dir::String)
@@ -100,17 +127,63 @@ end
 
 function build_cost_inputs(run_dir::String)
     cfg = TOML.parsefile(joinpath(run_dir, "config.toml"))
-    data_cfg = cfg["data"]
     params = cfg["parameters"]
-    station_file = joinpath(PROJECT_ROOT, data_cfg["station_file"])
-    segment_file = joinpath(PROJECT_ROOT, data_cfg["segment_file"])
-    stations = read_candidate_stations(station_file)
+    station_file = get_full_station_path(run_dir)
+    segment_file = joinpath(run_dir, "backtest", "simulation_inputs", "segment.csv")
+    stations = load_station_dataframe(station_file)
     walking_costs = compute_station_pairwise_costs(stations)
     routing_costs = read_routing_costs_from_segments(segment_file, stations)
     station_ids = sort(Int.(stations.id))
     max_walking_distance = Float64(get(params, "max_walking_distance", Inf))
     lambda_val = Float64(get(params, "in_vehicle_time_weight", 0.0))
     return station_ids, walking_costs, routing_costs, max_walking_distance, lambda_val
+end
+
+function _load_period_station_map(run_dir::String)::Vector{Tuple{Int, Vector{Int}}}
+    schedule_file = joinpath(run_dir, "backtest", "active_station_schedule.csv")
+    isfile(schedule_file) || return Tuple{Int, Vector{Int}}[]
+    schedule_df = CSV.read(schedule_file, DataFrame)
+    seen = Dict{Int, Vector{Int}}()
+    for row in eachrow(schedule_df)
+        h = Int(row.period_start_hour)
+        haskey(seen, h) && continue
+        seen[h] = sort(parse.(Int, split(String(row.active_station_ids))))
+    end
+    return sort([(h, ids) for (h, ids) in seen]; by=first)
+end
+
+function _get_period_start_hour(h::Int, period_map::Vector{Tuple{Int, Vector{Int}}})::Union{Int, Nothing}
+    result = nothing
+    for (ph, _) in period_map
+        ph > h && break
+        result = ph
+    end
+    return result
+end
+
+# Precompute minimum feasible (j,k) cost for every (origin_id, dest_id, period_start_hour).
+# Consistent with valid_jk_pairs in the optimization model: restricts to active stations and
+# respects max_walking_distance. Missing key = no feasible assignment exists.
+function _build_od_cost_lookup(
+    period_map::Vector{Tuple{Int, Vector{Int}}},
+    walking_costs::Dict{Tuple{Int,Int}, Float64},
+    routing_costs::Dict{Tuple{Int,Int}, Float64},
+    station_ids::Vector{Int},
+    lambda_val::Float64,
+    max_walking_distance::Float64,
+)::Dict{Tuple{Int,Int,Int}, Float64}
+    lookup = Dict{Tuple{Int,Int,Int}, Float64}()
+    for (ph, active_ids) in period_map
+        isempty(active_ids) && continue
+        for o in station_ids
+            for d in station_ids
+                o == d && continue
+                c = best_feasible_pair_cost(o, d, active_ids, walking_costs, routing_costs, lambda_val, max_walking_distance)
+                isnothing(c) || (lookup[(o, d, ph)] = c)
+            end
+        end
+    end
+    return lookup
 end
 
 function load_active_schedule(run_dir::String)
@@ -161,24 +234,46 @@ function iter_transformed_orders(run_dir::String, month::String)
 end
 
 function compute_order_costs(run_dir::String, month::String, lambda_val::Float64)
-    _, walking_costs, routing_costs, _, _ = build_cost_inputs(run_dir)
+    station_ids, walking_costs, routing_costs, max_walking_distance, _ = build_cost_inputs(run_dir)
+    period_map = _load_period_station_map(run_dir)
+    cost_lookup = _build_od_cost_lookup(period_map, walking_costs, routing_costs, station_ids, lambda_val, max_walking_distance)
     costs = Float64[]
     for orders_path in iter_transformed_orders(run_dir, month)
         df = CSV.read(orders_path, DataFrame)
         for row in eachrow(df)
-            pickup_id = Int(round(Float64(get(row, :assigned_pickup_id, 0))))
-            dropoff_id = Int(round(Float64(get(row, :assigned_dropoff_id, 0))))
-            (pickup_id == 0 || dropoff_id == 0) && continue
             origin_id = Int(row.origin_station_id)
             dest_id = Int(row.destination_station_id)
-            route_cost = pickup_id == dropoff_id ? 0.0 : get(routing_costs, (pickup_id, dropoff_id), Inf)
-            isfinite(route_cost) || continue
-            walk_cost = get(walking_costs, (origin_id, pickup_id), Inf) + get(walking_costs, (dropoff_id, dest_id), Inf)
-            isfinite(walk_cost) || continue
-            push!(costs, walk_cost + lambda_val * route_cost)
+            (origin_id == 0 || dest_id == 0) && continue
+            ph = _get_period_start_hour(Dates.hour(DateTime(String(row.order_time), "yyyy-mm-dd HH:MM:SS")), period_map)
+            isnothing(ph) && continue
+            c = get(cost_lookup, (origin_id, dest_id, ph), nothing)
+            isnothing(c) || push!(costs, c)
         end
     end
     return costs
+end
+
+function compute_order_costs_by_scenario_from_df(run_dir::String, orders_df::DataFrame, lambda_val::Float64)
+    station_ids, walking_costs, routing_costs, max_walking_distance, _ = build_cost_inputs(run_dir)
+    period_map = _load_period_station_map(run_dir)
+    cost_lookup = _build_od_cost_lookup(period_map, walking_costs, routing_costs, station_ids, lambda_val, max_walking_distance)
+    result = Dict{String, Vector{Float64}}()
+    for label in ("period_1", "period_2", "period_3", "period_4")
+        result[label] = Float64[]
+    end
+    for row in eachrow(orders_df)
+        origin_id = Int(row.origin_station_id)
+        dest_id = Int(row.destination_station_id)
+        (origin_id == 0 || dest_id == 0) && continue
+        h = Dates.hour(row.order_time)
+        label = period_label_from_hour(h)
+        isnothing(label) && continue
+        ph = _get_period_start_hour(h, period_map)
+        isnothing(ph) && continue
+        c = get(cost_lookup, (origin_id, dest_id, ph), nothing)
+        isnothing(c) || push!(result[label], c)
+    end
+    return result
 end
 
 function period_label_from_hour(hour::Int)
@@ -190,7 +285,9 @@ function period_label_from_hour(hour::Int)
 end
 
 function compute_order_costs_by_scenario(run_dir::String, month::String, lambda_val::Float64)
-    _, walking_costs, routing_costs, _, _ = build_cost_inputs(run_dir)
+    station_ids, walking_costs, routing_costs, max_walking_distance, _ = build_cost_inputs(run_dir)
+    period_map = _load_period_station_map(run_dir)
+    cost_lookup = _build_od_cost_lookup(period_map, walking_costs, routing_costs, station_ids, lambda_val, max_walking_distance)
     result = Dict{String, Vector{Float64}}()
     for label in ("period_1", "period_2", "period_3", "period_4")
         result[label] = Float64[]
@@ -198,18 +295,16 @@ function compute_order_costs_by_scenario(run_dir::String, month::String, lambda_
     for orders_path in iter_transformed_orders(run_dir, month)
         df = CSV.read(orders_path, DataFrame)
         for row in eachrow(df)
-            pickup_id = Int(round(Float64(get(row, :assigned_pickup_id, 0))))
-            dropoff_id = Int(round(Float64(get(row, :assigned_dropoff_id, 0))))
-            (pickup_id == 0 || dropoff_id == 0) && continue
-            label = period_label_from_hour(Dates.hour(DateTime(String(row.order_time), "yyyy-mm-dd HH:MM:SS")))
-            isnothing(label) && continue
             origin_id = Int(row.origin_station_id)
             dest_id = Int(row.destination_station_id)
-            route_cost = pickup_id == dropoff_id ? 0.0 : get(routing_costs, (pickup_id, dropoff_id), Inf)
-            isfinite(route_cost) || continue
-            walk_cost = get(walking_costs, (origin_id, pickup_id), Inf) + get(walking_costs, (dropoff_id, dest_id), Inf)
-            isfinite(walk_cost) || continue
-            push!(result[label], walk_cost + lambda_val * route_cost)
+            (origin_id == 0 || dest_id == 0) && continue
+            h = Dates.hour(DateTime(String(row.order_time), "yyyy-mm-dd HH:MM:SS"))
+            label = period_label_from_hour(h)
+            isnothing(label) && continue
+            ph = _get_period_start_hour(h, period_map)
+            isnothing(ph) && continue
+            c = get(cost_lookup, (origin_id, dest_id, ph), nothing)
+            isnothing(c) || push!(result[label], c)
         end
     end
     return result
@@ -264,22 +359,21 @@ get_order_cost_mean(run_dir::String, month::String, lambda_val::Float64) = (vals
 get_order_cost_std(run_dir::String, month::String, lambda_val::Float64) = (vals = compute_order_costs(run_dir, month, lambda_val); length(vals) <= 1 ? nothing : std(vals; corrected=false))
 
 function get_daily_cost_std(run_dir::String, month::String, lambda_val::Float64)
+    station_ids, walking_costs, routing_costs, max_walking_distance, _ = build_cost_inputs(run_dir)
+    period_map = _load_period_station_map(run_dir)
+    cost_lookup = _build_od_cost_lookup(period_map, walking_costs, routing_costs, station_ids, lambda_val, max_walking_distance)
     totals = Float64[]
-    _, walking_costs, routing_costs, _, _ = build_cost_inputs(run_dir)
     for orders_path in iter_transformed_orders(run_dir, month)
         df = CSV.read(orders_path, DataFrame)
         total = 0.0
         for row in eachrow(df)
-            pickup_id = Int(round(Float64(get(row, :assigned_pickup_id, 0))))
-            dropoff_id = Int(round(Float64(get(row, :assigned_dropoff_id, 0))))
-            (pickup_id == 0 || dropoff_id == 0) && continue
             origin_id = Int(row.origin_station_id)
             dest_id = Int(row.destination_station_id)
-            route_cost = pickup_id == dropoff_id ? 0.0 : get(routing_costs, (pickup_id, dropoff_id), Inf)
-            isfinite(route_cost) || continue
-            walk_cost = get(walking_costs, (origin_id, pickup_id), Inf) + get(walking_costs, (dropoff_id, dest_id), Inf)
-            isfinite(walk_cost) || continue
-            total += walk_cost + lambda_val * route_cost
+            (origin_id == 0 || dest_id == 0) && continue
+            ph = _get_period_start_hour(Dates.hour(DateTime(String(row.order_time), "yyyy-mm-dd HH:MM:SS")), period_map)
+            isnothing(ph) && continue
+            c = get(cost_lookup, (origin_id, dest_id, ph), nothing)
+            isnothing(c) || (total += c)
         end
         push!(totals, total)
     end

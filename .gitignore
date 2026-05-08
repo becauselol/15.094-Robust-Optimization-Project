@@ -37,3 +37,10 @@ Data/
 **/runs_binary_x/
 config/
 *.csv
+
+# Generated images
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf

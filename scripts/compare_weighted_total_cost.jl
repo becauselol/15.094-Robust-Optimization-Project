@@ -9,15 +9,14 @@ function build_rows(exp_dir::String)
     for (nominal, robust) in pair_runs(exp_dir)
         for month in ("April", "May")
             lam = Float64(nominal["in_vehicle_time_weight"])
-            n_total = get_order_cost_total(String(nominal["run_dir"]), month, lam)
-            r_total = get_order_cost_total(String(robust["run_dir"]), month, lam)
-            if isnothing(n_total) || isnothing(r_total)
-                continue
-            end
-            n_mean = get_order_cost_mean(String(nominal["run_dir"]), month, lam)
-            r_mean = get_order_cost_mean(String(robust["run_dir"]), month, lam)
-            n_std = get_order_cost_std(String(nominal["run_dir"]), month, lam)
-            r_std = get_order_cost_std(String(robust["run_dir"]), month, lam)
+            # Compute all stats in a single pass per run to avoid rebuilding cost lookup.
+            n_costs = compute_order_costs(String(nominal["run_dir"]), month, lam)
+            r_costs = compute_order_costs(String(robust["run_dir"]),  month, lam)
+            (isempty(n_costs) || isempty(r_costs)) && continue
+            n_total = sum(n_costs);  r_total = sum(r_costs)
+            n_mean  = mean(n_costs); r_mean  = mean(r_costs)
+            n_std   = length(n_costs) <= 1 ? nothing : std(n_costs; corrected=false)
+            r_std   = length(r_costs) <= 1 ? nothing : std(r_costs; corrected=false)
             n_theo = get_theoretical_od_metrics(String(nominal["run_dir"]))
             r_theo = get_theoretical_od_metrics(String(robust["run_dir"]))
             push!(rows, (

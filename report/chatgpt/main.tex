@@ -90,6 +90,60 @@ are less conveniently located relative to the selected stops.  The robust model
 reduces this sensitivity by favoring station configurations whose assignment
 performance remains more stable across plausible demand realizations.
 
+\subsection{Smoothed nominal model}
+
+One limitation of the nominal model is that it only optimizes over OD pairs that
+appear in the calibration data.  In a short calibration window, many plausible
+OD pairs have zero observed trips, so the model ignores them entirely.
+This leads to station plans with incomplete assignment coverage: any OD pair
+absent from training data cannot be assigned, regardless of which stations are
+built.
+
+The \emph{smoothed nominal model} addresses this by extending the OD support
+$\Omega_s$ to every walk-feasible pair $(o,d)$ and replacing the empirical
+mean demand $\bar{q}_{ods}$ with an empirical-Bayes estimate that shrinks toward
+a gravity prior.  Formally, the smoothed demand is
+\begin{equation}
+	\tilde{q}_{ods}
+	= \frac{n_{ods}}{n_{ods}+\tau}\,\bar{q}_{ods}
+	+ \frac{\tau}{n_{ods}+\tau}\,\hat{q}_{ods},
+	\label{eq:smoothed-demand}
+\end{equation}
+where $n_{ods}$ is the number of calibration days on which OD pair $(o,d)$
+had positive demand in period $s$, $\tau > 0$ is a pseudo-observation count, and
+$\hat{q}_{ods}$ is a strictly positive prior estimate.
+
+The prior estimate is constructed from a gravity model mixed with a uniform
+component.  Let $A^s_o = \sum_{d'}\bar{q}_{od's}$ be the total outbound mean
+demand from origin $o$, and $B^s_d = \sum_{o'}\bar{q}_{o'ds}$ the total inbound
+mean demand to destination $d$, both in scenario $s$.  The gravity probability is
+\[
+	\pi^{\mathrm{grav}}_{ods}
+	\;\propto\;
+	\frac{A^s_o\,B^s_d}{\bar{Q}_s^2},
+\]
+where $\bar{Q}_s = \sum_{(o,d)}\bar{q}_{ods}$ is the total empirical mean demand,
+and the mixture prior probability over walk-feasible pairs is
+\[
+	\pi_{ods}
+	= (1-\mu)\,\pi^{\mathrm{grav}}_{ods}
+	+ \mu\,\frac{1}{|\Omega^*_s|},
+\]
+with $\mu$ a small uniform-mixing weight and $|\Omega^*_s|$ the number of
+walk-feasible pairs.  The prior demand is then
+$\hat{q}_{ods} = \varepsilon_0\,\bar{Q}_s\,\pi_{ods}$, where
+$\varepsilon_0 \in (0,1)$ controls how much total prior mass is spread across
+all pairs.
+
+The smoothed model is solved with the same MILP as the nominal model
+\eqref{eq:nominal-obj}--\eqref{eq:budget}, replacing $q_{ods}$ with $\tilde{q}_{ods}$
+and $\Omega_s$ with $\Omega^*_s$.  The effect is that every walk-feasible OD
+pair receives a non-zero weight in the objective, so the optimizer must choose
+stations that serve the full reachable OD space rather than only the observed
+trips.
+
+In our experiments we use $\tau = 5$ (equivalent to five pseudo-observation days),
+$\varepsilon_0 = 0.02$, and $\mu = 0.05$.
 % ──────────────────────────────────────────────────────────────────────────────
 \section{Base Model}
 \label{sec:base}

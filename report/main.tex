@@ -445,108 +445,161 @@ fewer observed OD pairs.
 
 \section{Results}
 
-We compare the nominal and robust models on the sparse 40-station instance
-using a single compressed summary table.  For each $(k,q)$ pair, we report the
-April and May mean weighted cost per order, the corresponding standard
-deviations, and the number of uncovered stations summed across the four
-scenarios.  Nominal and robust results are listed on separate rows so the
-tradeoffs can be read directly without splitting the discussion across separate
-plots and subsections.  In the sparse nominal solutions, these uncovered
-stations appear only in the lower-demand afternoon and night periods; the
-robust solutions eliminate them in all scenarios.
+Both experiments are evaluated on the same out-of-sample test set: all 30,100
+May orders from the full-OD \texttt{zhuzhou\_data\_40} dataset (949 distinct OD
+pairs).  For the sparse experiment this is a \emph{distributional shift}: the
+models were calibrated on a sparsified version of April demand that concentrates
+all trips onto 130 of those 949 OD pairs, while the May test set contains the
+real demand distribution.  For the sampled experiment the train and test OD
+supports both come from the same dataset, so there is no such shift.
+
+May costs are computed by \texttt{scripts/evaluate\_full\_od\_may.jl}, which for
+each order finds the minimum-cost feasible station pair $(j,k)$ from the active
+stations of the relevant time-of-day period.  April costs are the in-sample
+equivalents computed with the same method on the sparse calibration orders.
+Uncovered = May orders for which no active station lies within the 300-second
+walking limit.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Sparse-network nominal-versus-robust comparison (\texttt{2026-05-03\_nominal\_smoothed\_robust\_sparse}). Costs are period-aware minimum-cost assignments from active stations. Uncovered = May orders with no feasible active-station assignment within the walking limit.}
+	\caption{%
+		Sparse-network comparison,
+		evaluated on full-OD May orders.
+		Bold = best in column within each $k$-block.%
+	}
 	\label{tab:sparse-summary}
 	\small
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.      & May std.        & Uncovered \\
+			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.      & May std.         & Uncovered  \\
 			\midrule
-			10  & --   & Nominal & \textbf{4446.97} & \textbf{4457.75} & 851.46          & 928.11          & 6                  \\
-			10  & 0.90 & Robust  & 4505.20          & 4529.14          & 845.97          & 911.70          & \textbf{0}         \\
-			10  & 0.95 & Robust  & 4521.04          & 4561.14          & \textbf{836.33} & \textbf{897.29} & \textbf{0}         \\
-			10  & 0.99 & Robust  & 4507.51          & 4533.24          & 840.04          & 898.53          & \textbf{0}         \\
+			10  & --   & Nominal & \textbf{4446.97} & \textbf{4305.57} & 851.46          & 1092.41          & 227        \\
+			10  & 0.90 & Robust  & 4505.20          & 4363.35          & 845.97          & 1100.00          & \textbf{0} \\
+			10  & 0.95 & Robust  & 4521.04          & 4392.62          & \textbf{836.33} & 1094.39          & \textbf{0} \\
+			10  & 0.99 & Robust  & 4507.51          & 4368.66          & 840.04          & \textbf{1089.52} & \textbf{0} \\
 			\midrule
-			15  & --   & Nominal & \textbf{4182.48} & \textbf{4185.40} & 881.21          & 921.42          & 1                  \\
-			15  & 0.90 & Robust  & 4234.00          & 4233.57          & 853.99          & 888.42          & \textbf{0}         \\
-			15  & 0.95 & Robust  & 4235.88          & 4242.24          & \textbf{848.30} & \textbf{882.88} & \textbf{0}         \\
-			15  & 0.99 & Robust  & 4236.58          & 4228.01          & 855.82          & 898.32          & \textbf{0}         \\
+			15  & --   & Nominal & \textbf{4182.48} & \textbf{4031.55} & 881.21          & 1082.65          & 14         \\
+			15  & 0.90 & Robust  & 4234.00          & 4080.66          & 853.99          & 1059.06          & \textbf{0} \\
+			15  & 0.95 & Robust  & 4235.88          & 4089.67          & \textbf{848.30} & \textbf{1058.01} & \textbf{0} \\
+			15  & 0.99 & Robust  & 4236.58          & 4073.98          & 855.82          & 1067.54          & \textbf{0} \\
 			\midrule
-			20  & --   & Nominal & \textbf{4136.13} & \textbf{4130.70} & 901.73          & 930.32          & \textbf{0}         \\
-			20  & 0.90 & Robust  & 4149.90          & 4143.05          & 886.97          & 916.94          & \textbf{0}         \\
-			20  & 0.95 & Robust  & 4155.78          & 4156.06          & \textbf{883.00} & \textbf{909.35} & \textbf{0}         \\
-			20  & 0.99 & Robust  & 4148.22          & 4141.16          & 887.77          & 915.85          & \textbf{0}         \\
+			20  & --   & Nominal & \textbf{4136.13} & \textbf{3972.53} & 901.73          & 1094.37          & \textbf{0} \\
+			20  & 0.90 & Robust  & 4149.90          & 3985.01          & 886.97          & 1082.80          & \textbf{0} \\
+			20  & 0.95 & Robust  & 4155.78          & 3998.38          & \textbf{883.00} & \textbf{1077.17} & \textbf{0} \\
+			20  & 0.99 & Robust  & 4148.22          & 3984.41          & 887.77          & 1079.39          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
 \end{table}
 
-\begin{table}[htbp]
+The nominal model has the lowest mean cost in April (in-sample) for every $k$,
+confirming it fits the sparse training data well.  On the full-OD May test,
+however, the nominal model leaves 227 orders uncovered at $k=10$ and 14 at
+$k=15$; the smoothed nominal and robust models achieve complete coverage.  At
+$k=20$ all models cover every order and mean costs converge to within 30 units
+of each other.
+
+\Cref{fig:built-k10,fig:activations-k10} show the geographic station selections
+for $k=10$.  The three models build the same 30 stations but differ in which
+10 they leave out: the nominal model excludes peripheral stations (31, 175, 133,
+117) while the smoothed and robust models include them at the cost of dropping
+stations from the dense central cluster.  The activation plots reveal the
+operational consequence: nominal activates only within the high-demand core,
+leaving the sparse outer regions entirely unserved, while smoothed and robust
+distribute activations more broadly across all four periods.
+
+\begin{figure}[htbp]
 	\centering
-	\caption{Dense sampled-network nominal-versus-robust comparison for the 2026-05-02 experiment. Uncovered stations are summed across the four time periods.}
-	\label{tab:dense-summary}
-	\small
-	\resizebox{\textwidth}{!}{%
-		\begin{tabular}{lllccccc}
-			\toprule
-			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered stations \\
-			\midrule
-			10  & --   & Nominal & \textbf{4331.02} & 4087.99          & 1150.89          & 1083.71          & \textbf{0}         \\
-			10  & 0.90 & Robust  & 4477.52          & 4207.09          & 1061.26          & 1089.36          & \textbf{0}         \\
-			10  & 0.95 & Robust  & 4568.88          & \textbf{4083.38} & 1064.82          & \textbf{1082.61} & \textbf{0}         \\
-			10  & 0.99 & Robust  & 4536.73          & 4220.16          & \textbf{1050.22} & 1108.41          & \textbf{0}         \\
-			\midrule
-			15  & --   & Nominal & \textbf{4117.31} & 4095.45          & 1105.11          & \textbf{1075.04} & \textbf{0}         \\
-			15  & 0.90 & Robust  & 4393.37          & \textbf{4080.44} & 1022.25          & 1086.52          & \textbf{0}         \\
-			15  & 0.95 & Robust  & 4294.70          & 4085.23          & 1028.35          & 1081.02          & \textbf{0}         \\
-			15  & 0.99 & Robust  & 4275.41          & 4084.24          & \textbf{1017.72} & 1082.60          & \textbf{0}         \\
-			\midrule
-			20  & --   & Nominal & \textbf{4056.09} & \textbf{4079.58} & 1122.79          & 1086.53          & \textbf{0}         \\
-			20  & 0.90 & Robust  & 4174.13          & 4084.27          & 1015.06          & 1081.13          & \textbf{0}         \\
-			20  & 0.95 & Robust  & 4257.75          & 4094.05          & \textbf{1002.38} & \textbf{1065.27} & \textbf{0}         \\
-			20  & 0.99 & Robust  & 4255.09          & 4081.41          & 1006.12          & 1085.00          & \textbf{0}         \\
-			\bottomrule
-		\end{tabular}%
+	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_built_k10.png}
+	\caption{%
+		Built station selections for $k=10$.
+		Coloured dots = built (30 of 40); gray = not built.
+		Nominal excludes peripheral stations that the smoothed and robust models retain.%
 	}
-\end{table}
+	\label{fig:built-k10}
+\end{figure}
 
-For the follow-up 2026-05-03 experiment, we compare three models on a smaller
-pilot sweep on the denser sampled-network instance: the original nominal model,
-the smoothed nominal variant, and the robust total-demand-cap model.  The values
-in \cref{tab:three-model-summary} were generated from
-\texttt{scripts/summarize\_three\_model\_results.jl} using the same
-period-aware active-station cost computation as in the sparse comparison above.
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_activations_k10.png}
+	\caption{%
+		Per-period activations for $k=10$.
+		Filled = active; hollow = built but inactive; gray dot = not built.
+		Nominal concentrates all 10 active stations in the high-demand core;
+		smoothed and robust spread activations across the network in every period.%
+	}
+	\label{fig:activations-k10}
+\end{figure}
+
+\Cref{fig:cdf-sparse} shows the empirical cost CDFs for $k=15$ across the four
+time-of-day scenarios.  The distributions for all five models largely overlap,
+with robust variants shifted slightly to the right in the upper tail.  The
+main difference between nominal and non-nominal models is coverage, not the
+shape of the cost distribution for covered orders.
+
+\begin{figure}[htbp]
+	\centering
+	\begin{subfigure}[b]{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_1.png}
+		\caption{Morning (06--10h)}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_2.png}
+		\caption{Afternoon (10--15h)}
+	\end{subfigure}
+	\vspace{0.5em}
+	\begin{subfigure}[b]{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_3.png}
+		\caption{Evening (15--20h)}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.48\textwidth}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_4.png}
+		\caption{Night (20--24h)}
+	\end{subfigure}
+	\caption{%
+		Empirical CDFs of per-order cost for $k=15$, sparse experiment,
+		May full-OD test set.  Each panel corresponds to one time-of-day scenario.%
+	}
+	\label{fig:cdf-sparse}
+\end{figure}
+
+\Cref{tab:three-model-summary} reports the same three models on the
+denser sampled-network instance,
+where both training and test share the full 949-OD support.
+All models achieve complete coverage (0 uncovered), and the cost gaps between
+models are slightly larger than in the sparse setting.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Three-model comparison for the 2026-05-03 sampled-network pilot experiment (\texttt{2026-05-03\_nominal\_smoothed\_robust}). Costs are period-aware minimum-cost assignments from active stations, computed using \texttt{summarize\_three\_model\_results.jl}.}
+	\caption{%
+		Sampled-network three-model comparison (\texttt{2026-05-03\_nominal\_smoothed\_robust}),
+		evaluated on full-OD May orders.
+		Bold = best in column within each $k$-block.%
+	}
 	\label{tab:three-model-summary}
 	\small
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $q$  & Model             & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered \\
+			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
 			\midrule
-			10  & --   & Nominal           & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
-			10  & --   & Smoothed nominal  & 4266.71          & 4344.73          & 1132.77          & 1116.09          & \textbf{0} \\
-			10  & 0.90 & Robust            & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
-			10  & 0.95 & Robust            & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
-			10  & 0.99 & Robust            & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
+			10  & --   & Nominal & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
+			10  & 0.90 & Robust  & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
+			10  & 0.95 & Robust  & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
+			10  & 0.99 & Robust  & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
 			\midrule
-			15  & --   & Nominal           & \textbf{3977.09} & 4049.94          & 1145.30          & 1119.97          & \textbf{0} \\
-			15  & --   & Smoothed nominal  & 3977.48          & \textbf{4045.18} & 1145.55          & 1125.89          & \textbf{0} \\
-			15  & 0.90 & Robust            & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
-			15  & 0.95 & Robust            & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
-			15  & 0.99 & Robust            & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
+			15  & --   & Nominal & \textbf{3977.09} & \textbf{4049.94} & 1145.30          & 1119.97          & \textbf{0} \\
+			15  & 0.90 & Robust  & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
+			15  & 0.95 & Robust  & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
+			15  & 0.99 & Robust  & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
 			\midrule
-			20  & --   & Nominal           & 3924.95          & 3984.77          & 1168.67          & 1142.49          & \textbf{0} \\
-			20  & --   & Smoothed nominal  & \textbf{3924.16} & \textbf{3964.34} & 1159.35          & 1113.86          & \textbf{0} \\
-			20  & 0.90 & Robust            & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
-			20  & 0.95 & Robust            & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
-			20  & 0.99 & Robust            & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
+			20  & --   & Nominal & \textbf{3924.95} & \textbf{3984.77} & 1168.67          & 1142.49          & \textbf{0} \\
+			20  & 0.90 & Robust  & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
+			20  & 0.95 & Robust  & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
+			20  & 0.99 & Robust  & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
