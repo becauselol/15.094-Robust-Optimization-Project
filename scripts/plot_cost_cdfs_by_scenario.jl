@@ -30,11 +30,11 @@ end
 function model_specs(model_type::String, quantile)
     if model_type == "NominalModel"
         return ModelSpec("Nominal", "Nominal", :black, :solid)
-    elseif model_type == "SmoothedNominalModel"
-        return ModelSpec("Smoothed", "Smoothed nominal", :royalblue, :dash)
+    elseif model_type == "NominalFeasibleModel"
+        return ModelSpec("NominalFeasible", "Nominal (feasible)", :darkorange, :dash)
     elseif model_type == "RobustTotalDemandCapModel"
         q = ismissing(quantile) ? "?" : string(quantile)
-        colors = Dict("0.9" => :darkgreen, "0.95" => :orange, "0.99" => :crimson)
+        colors = Dict("0.9" => :darkgreen, "0.95" => :royalblue, "0.99" => :crimson)
         styles = Dict("0.9" => :solid, "0.95" => :dash, "0.99" => :dot)
         return ModelSpec("Robust_$q", "Robust q=$q",
             get(colors, q, :gray), get(styles, q, :solid))
@@ -44,7 +44,7 @@ end
 
 function model_sort_key(model_type::String, quantile)
     model_type == "NominalModel" && return (1, 0.0)
-    model_type == "SmoothedNominalModel" && return (2, 0.0)
+    model_type == "NominalFeasibleModel" && return (2, 0.0)
     return (3, ismissing(quantile) ? 0.0 : Float64(quantile))
 end
 
@@ -60,7 +60,6 @@ function collect_costs(exp_dir::String, may_orders::DataFrame, k_filter::Int;
         Int(k) == k_filter || continue
 
         mtype = String(model_type)
-        mtype == "SmoothedNominalModel" && continue
         quantile = get(metrics, "demand_quantile", missing)
 
         if mtype == "RobustTotalDemandCapModel" && !isnothing(robust_quantile)

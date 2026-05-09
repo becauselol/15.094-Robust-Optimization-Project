@@ -252,34 +252,43 @@ with $\alpha_s,\beta_{ods},\gamma_{ods}\ge 0$ and $x_{odjks} ,y_j, z_{js} \in \{
 \section{Experiments}
 
 We use operational data from a microtransit system in Zhuzhou, China.
-The full network has 84 stations, but for scalability we reduce to the 40 most
+The full network has 84 stations, but due to scalability issues we reduce to the 40 most
 popular stations by OD request volume. Because these stations account for the
 majority of demand, the reduction in order coverage is minimal.
-\begin{table}[htbp]
+\begin{table}[h]
 	\centering
-	\caption{Dataset variants for the April calibration and May backtest windows.}
+	\caption{Dataset variants for the April and May demand windows.}
 	\label{tab:data-summary}
 	\begin{tabular}{lrrr}
 		\toprule
 		Metric                & Full Zhuzhou & Sampled & Sparse \\
 		\midrule
 		Stations              & 84           & 40      & 40     \\
-		Directed segments     & 6,972        & 1,560   & 1,560  \\
-		April orders          & 2,741        & 2,560   & 2,560  \\
-		April ODs with orders & 473          & 389     & 130    \\
+		April orders          & 25,947       & 24,476  & 24,476 \\
+		April ODs with orders & 1,426        & 956     & 131    \\
 		May orders            & 31,546       & 30,100  & 30,100 \\
 		May ODs with orders   & 1,412        & 949     & 131    \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-Table~\ref{tab:data-summary} describes the three variants. The sparse variant is constructed by randomly reassigning demand counts from the least popular OD pairs onto the most popular ones, concentrating all calibration demand onto the top 10\% of OD pairs (389 $\to$ 130). This mimics a data-poor setting where granular OD-level observations are unavailable and demand is only recorded at an aggregate level.
+Table~\ref{tab:data-summary} describes the three variants. The sparse variant is constructed by randomly reassigning demand counts from the least popular OD pairs onto the most popular ones, concentrating all demand onto the top ${\sim}14\%$ of OD pairs (956 $\to$ 131). This mimics a data-poor setting where granular OD-level observations are less available.
 
 \subsection{Experimental Design}
 
-We optimize station selection over data on April 1--3, 2025 and evaluate on May 1--31, 2025. We fix $l=30$ selected stations, a 300-second walking limit,
+We optimize station selection over data on April 1--30, 2025 and evaluate on May 1--31, 2025. We fix $l=30$ selected stations, a 300-second walking limit,
 $\lambda=10$, and vary $k \in \{10,15,20\}$. For the robust model we vary the
 calibration quantile $\tau \in \{0.90,0.95,0.99\}$.
+
+\subsection{Nominal Feasible Model}
+
+As a baseline that enforces service coverage, we introduce
+the \emph{nominal feasible model}. It extends the nominal model with per-station
+coverage constraints:
+\[
+	\sum_{k \in N_j} z_{k,s} \geq 1 \qquad \forall\, j \in J,\ s \in S,
+\]
+where $N_j = \{k \in J : d_{jk}^{\mathrm{walk}} \leq W^{\max}\}$ is the set of stations reachable from location $j$ on foot, so the constraint requires that at least one station within walking distance of every candidate location is activated in each scenario. This guarantees that all possible demand locations are servieable. Unlike the robust model, the nominal feasible model uses the same averaged demand in its objective as the nominal model.
 
 \subsection{Uncertainty-Set Calibration}
 
@@ -293,21 +302,15 @@ given day.
 \paragraph{Upper bounds $\overline{q}_{ods}$:}
 Every OD pair in the full network receives a strictly positive upper bound
 $\overline{q}_{ods}$. For pairs observed at least once in the calibration
-window, $\overline{q}_{ods}$ is the $\tau$-quantile of daily counts, treating
-days with no demand for that pair as zero. For pairs with no observed orders,
-$\overline{q}_{ods}$ is imputed via a rank-1 gravity model:
-$\overline{q}_{ods} = \lceil O_s(o)\cdot D_s(d)/Q_s \rceil$, where $O_s(o)$
-and $D_s(d)$ are the total origin and destination flows from observed pairs and
-$Q_s$ is the total observed demand in period $s$. For stations that appear in
-no orders at all, the gravity estimate falls back to a floor value equal to the
-minimum positive $\overline{q}$ observed across all periods.
+window, $\overline{q}_{ods}$ is the empirical $\tau$-quantile of daily counts
+. For pairs with no observed demand, or pairs whose quantile rounds to zero, $\overline{q}_{ods}$ is set to a flat floor equal to the minimum positive $\overline{q}$ observed across all OD pairs and periods.
 
 \paragraph{Aggregate cap $\overline{Q}_s$:}
 $\overline{Q}_s$ is the $\tau$-quantile of total period demand across
 calibration days.
 
 
-\begin{table}[htbp]
+\begin{table}[h]
 	\centering
 	\caption{Uncertainty-set diagnostics, 90th-percentile calibration.}
 	\label{tab:uncertainty-summary}
@@ -316,36 +319,31 @@ calibration days.
 		\toprule
 		Period              & Sampled ODs & Sparse ODs & Sampled ratio & Sparse ratio \\
 		\midrule
-		Morning (06--10h)   & 94          & 80         & 17.42         & 17.46        \\
-		Afternoon (10--15h) & 169         & 103        & 7.12          & 7.28         \\
-		Evening (15--20h)   & 249         & 122        & 2.86          & 2.97         \\
-		Night (20--24h)     & 120         & 87         & 13.16         & 13.31        \\
+		Morning (06--10h)   & 341         & 129        & 1.54          & 1.83         \\
+		Afternoon (10--15h) & 612         & 131        & 1.41          & 1.34         \\
+		Evening (15--20h)   & 725         & 131        & 1.44          & 1.34         \\
+		Night (20--24h)     & 351         & 128        & 1.50          & 1.59         \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-Table~\ref{tab:uncertainty-summary} shows that both 40-station variants produce
-large box-to-cap ratios, confirming that the aggregate cap $\overline{Q}_s$
-substantially tightens the uncertainty set relative to a pure box. Without it,
-the adversary could simultaneously push every OD pair to its upper bound, which
-in the morning period corresponds to a scenario 17 times the observed total
-demand, yielding an overly conservative solution.
+Table~\ref{tab:uncertainty-summary} shows that the budget constraint is meaningful. Without it,
+the adversary could simultaneously push every OD pair to its upper bound,
+inflating total demand.
 
 \section{Results}
 
-Both experiments report results on the full-OD dataset (949 OD pairs), covering
-both the April calibration period (2,560 orders) and the May test period (30,100
-orders). For the sparse experiment, this means evaluating on OD pairs not seen
-during calibration: models were trained on 130 OD pairs while evaluation spans
-all 949.
+Experiments were run on the downsampled 40 station dataset and the models were optimized with data from April and tested on the full May period. In the sparse case, models were optimized using demand data from 131 ODs while the evaluation on the May data spans a wider set of ODs.
 
 \subsection{Sampled-Network Results}
 
-With dense training OD coverage, all models achieve zero uncovered orders
-(\Cref{tab:three-model-summary}). The nominal model has the lowest mean cost for
-every $k$; robust variants trade a small mean cost increase for lower variance.
+With dense OD coverage in the full sample, all models achieve zero uncovered orders
+(\Cref{tab:three-model-summary}).
+The nominal and nominal feasible models achieve the lowest mean cost. Robust variants have a slightly higher average cost but generally have lower per-order cost variance.
 
-\begin{table}[htbp]
+It should be expected that the cost between nominal and the nominal feasible model is the same in this case. However they have negligible differences, likely due to the MIP gap in the solver being set to $0.1\%$.
+
+\begin{table}[h]
 	\centering
 	\caption{%
 		Sampled-network results, full-OD May orders.
@@ -356,22 +354,25 @@ every $k$; robust variants trade a small mean cost increase for lower variance.
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $\tau$ & Model   & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
+			$k$ & $\tau$ & Model           & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
 			\midrule
-			10  & --     & Nominal & \textbf{4266.09} & \textbf{4333.42} & 1129.72          & 1116.39          & \textbf{0} \\
-			10  & 0.90   & Robust  & 4287.81          & 4359.76          & 1111.08          & 1102.67          & \textbf{0} \\
-			10  & 0.95   & Robust  & 4302.24          & 4392.66          & \textbf{1108.89} & \textbf{1090.17} & \textbf{0} \\
-			10  & 0.99   & Robust  & 4293.94          & 4369.71          & 1109.24          & 1098.48          & \textbf{0} \\
+			10  & --     & Nominal         & 4262.40          & \textbf{4319.94} & 1144.72          & 1098.14          & \textbf{0} \\
+			10  & --     & Nominal (feas.) & \textbf{4261.24} & 4324.87          & 1161.92          & 1110.97          & \textbf{0} \\
+			10  & 0.90   & Robust          & 4288.12          & 4345.74          & 1154.60          & 1099.07          & \textbf{0} \\
+			10  & 0.95   & Robust          & 4299.23          & 4369.80          & 1144.33          & 1090.94          & \textbf{0} \\
+			10  & 0.99   & Robust          & 4299.02          & 4363.20          & \textbf{1140.96} & \textbf{1088.16} & \textbf{0} \\
 			\midrule
-			15  & --     & Nominal & \textbf{3977.09} & \textbf{4049.94} & 1145.30          & 1119.97          & \textbf{0} \\
-			15  & 0.90   & Robust  & 4018.31          & 4071.27          & 1106.48          & 1088.71          & \textbf{0} \\
-			15  & 0.95   & Robust  & 4023.38          & 4080.47          & 1105.51          & 1085.45          & \textbf{0} \\
-			15  & 0.99   & Robust  & 4030.38          & 4067.03          & \textbf{1096.25} & \textbf{1066.90} & \textbf{0} \\
+			15  & --     & Nominal         & \textbf{3955.90} & \textbf{4028.27} & 1133.51          & 1088.94          & \textbf{0} \\
+			15  & --     & Nominal (feas.) & \textbf{3955.90} & \textbf{4028.27} & 1133.51          & 1088.94          & \textbf{0} \\
+			15  & 0.90   & Robust          & 4020.73          & 4092.75          & 1106.56          & 1052.13          & \textbf{0} \\
+			15  & 0.95   & Robust          & 4010.86          & 4079.16          & \textbf{1093.28} & \textbf{1040.93} & \textbf{0} \\
+			15  & 0.99   & Robust          & 4009.53          & 4086.36          & 1103.79          & 1049.66          & \textbf{0} \\
 			\midrule
-			20  & --     & Nominal & \textbf{3924.95} & \textbf{3984.77} & 1168.67          & 1142.49          & \textbf{0} \\
-			20  & 0.90   & Robust  & 3967.29          & 4003.44          & \textbf{1116.51} & \textbf{1082.44} & \textbf{0} \\
-			20  & 0.95   & Robust  & 3948.96          & 3978.06          & 1118.75          & 1090.00          & \textbf{0} \\
-			20  & 0.99   & Robust  & 3958.28          & 4005.45          & 1118.56          & 1091.22          & \textbf{0} \\
+			20  & --     & Nominal         & 3882.29          & \textbf{3957.45} & 1165.42          & 1114.69          & \textbf{0} \\
+			20  & --     & Nominal (feas.) & \textbf{3881.77} & 3957.47          & 1167.29          & 1116.31          & \textbf{0} \\
+			20  & 0.90   & Robust          & 3921.15          & 3999.72          & 1126.05          & 1075.51          & \textbf{0} \\
+			20  & 0.95   & Robust          & 3926.23          & 4003.83          & \textbf{1123.39} & \textbf{1071.72} & \textbf{0} \\
+			20  & 0.99   & Robust          & 3936.01          & 4014.41          & 1123.40          & 1072.74          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
@@ -379,147 +380,139 @@ every $k$; robust variants trade a small mean cost increase for lower variance.
 
 \subsection{Sparse-Network Results}
 
-The nominal model fits the sparse training data best but leaves 227 orders
-uncovered at $k=10$ and 14 at $k=15$. Robust models achieve complete coverage
-(\Cref{tab:sparse-summary}). At $k=20$ all models cover every order and costs
-converge.
+With sparse OD data, the nominal model has the best mean cost but leaves 214 orders uncovered at $k=10$. The feasible-nominal model achieves complete coverage at $k=10$ with a lower mean cost than any robust variant
+(\Cref{tab:sparse-summary}),
+demonstrating that explicit coverage constraints can match the service-availability guarantee of robustness without having to pay the cost premium from protecting against the worst case scenario. At $k=15$ and $k=20$, all models cover every order and costs converge.
 
-\begin{table}[htbp]
+\begin{table}[h]
 	\centering
 	\caption{%
 		Sparse-network results, full-OD May orders.
-		Bold = best in column within each $k$-block.%
+		Bold = best in column within each $k$-block.
+		Mean costs for Nominal at $k=10$ exclude 214 uncovered orders.%
 	}
 	\label{tab:sparse-summary}
 	\small
 	\resizebox{\textwidth}{!}{%
 		\begin{tabular}{lllccccc}
 			\toprule
-			$k$ & $q$  & Model   & April mean cost  & May mean cost    & April std.      & May std.         & Uncovered  \\
+			$k$ & $\tau$ & Model           & April mean cost  & May mean cost    & April std.       & May std.         & Uncovered  \\
 			\midrule
-			10  & --   & Nominal & \textbf{4446.97} & \textbf{4305.57} & 851.46          & 1092.41          & 227        \\
-			10  & 0.90 & Robust  & 4505.20          & 4363.35          & 845.97          & 1100.00          & \textbf{0} \\
-			10  & 0.95 & Robust  & 4521.04          & 4392.62          & \textbf{836.33} & 1094.39          & \textbf{0} \\
-			10  & 0.99 & Robust  & 4507.51          & 4368.66          & 840.04          & \textbf{1089.52} & \textbf{0} \\
+			10  & --     & Nominal         & 4271.53          & \textbf{4324.72} & \textbf{1122.67} & \textbf{1082.10} & 214        \\
+			10  & --     & Nominal (feas.) & \textbf{4259.78} & 4318.17          & 1150.03          & 1102.56          & \textbf{0} \\
+			10  & 0.90   & Robust          & 4295.37          & 4351.95          & 1147.97          & 1092.40          & \textbf{0} \\
+			10  & 0.95   & Robust          & 4290.17          & 4357.09          & 1148.56          & 1099.16          & \textbf{0} \\
+			10  & 0.99   & Robust          & 4303.98          & 4376.77          & 1144.23          & 1089.74          & \textbf{0} \\
 			\midrule
-			15  & --   & Nominal & \textbf{4182.48} & \textbf{4031.55} & 881.21          & 1082.65          & 14         \\
-			15  & 0.90 & Robust  & 4234.00          & 4080.66          & 853.99          & 1059.06          & \textbf{0} \\
-			15  & 0.95 & Robust  & 4235.88          & 4089.67          & \textbf{848.30} & \textbf{1058.01} & \textbf{0} \\
-			15  & 0.99 & Robust  & 4236.58          & 4073.98          & 855.82          & 1067.54          & \textbf{0} \\
+			15  & --     & Nominal         & \textbf{3958.48} & \textbf{4026.29} & 1117.83          & 1071.99          & \textbf{0} \\
+			15  & --     & Nominal (feas.) & 3962.03          & 4033.63          & 1122.01          & 1080.06          & \textbf{0} \\
+			15  & 0.90   & Robust          & 4010.00          & 4074.93          & 1100.96          & 1049.98          & \textbf{0} \\
+			15  & 0.95   & Robust          & 4020.72          & 4094.39          & \textbf{1097.51} & \textbf{1042.90} & \textbf{0} \\
+			15  & 0.99   & Robust          & 4007.22          & 4078.84          & 1103.19          & 1049.15          & \textbf{0} \\
 			\midrule
-			20  & --   & Nominal & \textbf{4136.13} & \textbf{3972.53} & 901.73          & 1094.37          & \textbf{0} \\
-			20  & 0.90 & Robust  & 4149.90          & 3985.01          & 886.97          & 1082.80          & \textbf{0} \\
-			20  & 0.95 & Robust  & 4155.78          & 3998.38          & \textbf{883.00} & \textbf{1077.17} & \textbf{0} \\
-			20  & 0.99 & Robust  & 4148.22          & 3984.41          & 887.77          & 1079.39          & \textbf{0} \\
+			20  & --     & Nominal         & \textbf{3886.85} & \textbf{3960.08} & 1154.76          & 1105.72          & \textbf{0} \\
+			20  & --     & Nominal (feas.) & 3889.32          & 3963.05          & 1157.47          & 1107.31          & \textbf{0} \\
+			20  & 0.90   & Robust          & 3912.60          & 3983.97          & 1126.73          & 1081.03          & \textbf{0} \\
+			20  & 0.95   & Robust          & 3929.62          & 4006.93          & \textbf{1124.91} & \textbf{1074.98} & \textbf{0} \\
+			20  & 0.99   & Robust          & 3938.17          & 4020.94          & 1129.85          & 1077.70          & \textbf{0} \\
 			\bottomrule
 		\end{tabular}%
 	}
 \end{table}
 
-All three models select the same 30 stations (see \Cref{fig:built-k10} in the
-appendix), so the divergence is entirely in which $k$ stations are activated per
-period. \Cref{fig:activations-morning} shows the morning period at $k=10$: the
-nominal model places all 10 activations in the high-demand core near the centre
-of the network, while the robust ($q=0.95$) model distributes activations more
-broadly, including peripheral stations that are rarely observed in the sparse
-calibration data. This broader coverage is what eliminates the 227 uncovered
-orders.
+Figure \ref{fig:activations-morning}
+shows the activations of each model in the morning period at $k=10$. The nominal model focuses its activations on serving demand efficiently compared to the nominal feasible model and the robust model, which results in some distant stations not being covered. The nominal feasible model enforces coverage constraints and activates peripheral stations, achieving zero uncovered orders at lower cost than any robust variant. The robust ($\tau=0.95$) model similarly distributes activations broadly and achieves full coverage but at a higher cost than the nominal feasible model.
 
-\begin{figure}[htbp]
+\begin{figure}[h]
 	\centering
-	\begin{subfigure}[b]{0.48\textwidth}
+	\begin{subfigure}[b]{0.32\textwidth}
 		\centering
-		\includegraphics[width=0.9\textwidth]{../presentation/img/activation_nominal_period_1_k10.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/station_selections/individual/activation_nominal_period_1_k10.png}
 		\caption{Nominal}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}[b]{0.48\textwidth}
+	\begin{subfigure}[b]{0.32\textwidth}
 		\centering
-		\includegraphics[width=0.9\textwidth]{../presentation/img/activation_robust_q095_period_1_k10.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/station_selections/individual/activation_feasible_period_1_k10.png}
+		\caption{Nominal (feasible)}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.32\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/station_selections/individual/activation_robust_q095_period_1_k10.png}
 		\caption{Robust ($q=0.95$)}
 	\end{subfigure}
-	\caption{Morning-period activations for $k=10$. Filled = active; hollow = selected but inactive. Nominal clusters all activations in the high-demand core; robust spreads them across the network.}
+	\caption{Morning-period activations for $k=10$, sparse experiment. Filled = active; hollow = selected but inactive.}
 	\label{fig:activations-morning}
 \end{figure}
 
-However, for orders that \emph{are} covered, the cost distributions are nearly
-identical. \Cref{fig:cdf-sparse-main} shows that CDFs for nominal and robust
-largely overlap, with robust variants shifted only slightly to the right in the
-upper tail. This reveals a gap between the expected and actual benefit of
-robustness: the model was designed to hedge against worst-case costs, but in
-practice the recourse function is simple enough that once a station is within
-reach, the assignment cost is similar regardless of which model selected the stations.
-The main benefit in the sparse setting is therefore service availability,
-specifically ensuring that peripheral demand is not left uncovered, rather than cost
-reduction for served orders.
-
-\begin{figure}[htbp]
+\begin{figure}[h]
 	\centering
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_1.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_1.png}
 		\caption{Morning (06--10h)}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_2.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_2.png}
 		\caption{Afternoon (10--15h)}
 	\end{subfigure}
-	\caption{Cost CDFs for $k=15$, sparse experiment, May full-OD test set. Nominal and robust distributions largely coincide for covered orders.}
+	\caption{Cost CDFs for $k=15$, sparse experiment, May full-OD test set.}
 	\label{fig:cdf-sparse-main}
 \end{figure}
 
+\subsection{Understanding the Lower Spread in Cost for Robust Model}
+
+In
+\Cref{fig:cdf-sparse-main}
+, we see that the lower standard deviation of the robust model is not due to the reduction in cost of the orders that experience high cost in the nominal model, but rather due to the increase in cost for orders that experience low cost in the nominal model. This shows that although the solution is robust, it does not make any improvement over the nominal solution, and provides a strictly worse solution from a cost perspective.
+
+This is likely due to a geometric limitation of the problem. The limited station pool may not provide sufficient spatial variety for the robust solution to reduce the cost of orders that experience high cost under the nominal solution.
+
+
 \section{Conclusion}
 
-A budgeted uncertainty set is a practical way to model uncertain OD demand
-without extreme conservatism: per-OD bounds keep each pair within its historical
-range while the cap $\overline{Q}_s$ prevents simultaneous surges. When data is
-dense, robustness primarily reduces cost variance. When data is sparse, the
-nominal plan concentrates activations in the observed high-demand core and leaves
-peripheral orders uncovered, while the robust plan achieves full coverage at a
-modest cost premium. Coverage can alternatively be enforced via explicit
-constraints, which may be more efficient when variance reduction is not a goal.
+A budget uncertainty set is a practical way to model uncertain OD demand in the VBS selection problem. We observe that when data is sparse, a nominal solution may lack service coverage while the robust solution provides service guarantees. However, the robust solution incurs a cost premium without reducing high-end costs, even though the variance in order costs has decreased. Enforcing coverage via explicit constraints is more efficient in this setting, as the priority in transportation is ensuring that the cost experienced by passengers is proportionate to their travel distance, rather than minimising cost variance.
 
-Future work could incorporate richer recourse functions reflecting true
-microtransit operations (vehicle capacity, rebalancing, multi-period dynamics),
-and identify which demand regimes, such as low-density or spatially shifting
-demand, most benefit from a robust plan.
+Future work could incorporate richer recourse functions reflecting true microtransit operations (vehicle capacity, rebalancing, multi-period dynamics), and identify candidate station sets and demand patterns that benefit most from a robust solution.
 
+\newpage
 \appendix
 \section{Additional Figures}
 
-\begin{figure}[htbp]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_built_k10.png}
+	\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/station_selections/station_selections_built_k10.png}
 	\caption{Selected stations for $k=10$. Coloured dots = selected (30 of 40); gray = not selected. All three models select the same set of 30 stations.}
 	\label{fig:built-k10}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/station_selections/station_selections_activations_k10.png}
+	\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/station_selections/station_selections_activations_k10.png}
 	\caption{Per-period activations for $k=10$ across all four time-of-day scenarios. Filled = active; hollow = selected but inactive; gray = not selected.}
 	\label{fig:activations-all}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[h]
 	\centering
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_1.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_1.png}
 		\caption{Morning (06--10h)}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_2.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_2.png}
 		\caption{Afternoon (10--15h)}
 	\end{subfigure}
 	\vspace{0.5em}
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_3.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_3.png}
 		\caption{Evening (15--20h)}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{../experiments/2026-05-03_nominal_smoothed_robust_sparse/analysis/cdfs/cdf_k15_period_4.png}
+		\includegraphics[width=\textwidth]{../experiments/2026-05-08_robust_calibration_window_sparse/analysis/cdfs/cdf_k15_period_4.png}
 		\caption{Night (20--24h)}
 	\end{subfigure}
 	\caption{Cost CDFs for $k=15$ across all four time-of-day scenarios, sparse experiment, May full-OD test set.}
